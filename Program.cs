@@ -161,7 +161,7 @@ void AddMessageToThread(MS_Message message, int threadId)
         {
             MessageId = message.MessageId,
             ThreadId = threadId,
-            position = context.ThreadToMessages.Count(t => t.ThreadId == threadId) + 1
+            Position = context.ThreadToMessages.Count(t => t.ThreadId == threadId) + 1
         };
         context.ThreadToMessages.Add(threadToMessage);
         context.SaveChanges();

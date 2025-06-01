@@ -48,8 +48,6 @@ namespace EF_Messages
 
 
 // thread structure for the message system
-    [Table("ThreadToMessage")]
-    [PrimaryKey("Id")]
     public class ThreadToMessage
     {
         public int Id { get; set; }
@@ -63,14 +61,14 @@ namespace EF_Messages
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_Message? Message { get; set; }
 
-        public int position { get; set; } = 0;
+        public int Position { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public ThreadToMessage(int threadId, int messageId, int position = 0)
         {
             this.Id = 0; // This will be set by the database
             this.CreatedAt = DateTime.UtcNow;
-            this.position = position;
+            this.Position = position;
             this.ThreadId = threadId;
             this.MessageId = messageId;
         }
@@ -80,7 +78,7 @@ namespace EF_Messages
             this.Id = 0; // This will be set by the database
             this.ThreadId = 0;
             this.MessageId = 0;
-            this.position = 0;
+            this.Position = 0;
             this.CreatedAt = DateTime.UtcNow;
         }
     }
@@ -100,6 +98,7 @@ namespace EF_Messages
         [ForeignKey("UserId")]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_User? User { get; set; }
+        public int LastReadPosition { get; set; } = 0;
 
         public ThreadToUser(int threadId, int userId, bool owner = false)
         {
