@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EF_Messages.Migrations
 {
     [DbContext(typeof(MessageSystemContext))]
-    [Migration("20250520120705_AddingThreads")]
-    partial class AddingThreads
+    [Migration("20250601070359_Reinitialization")]
+    partial class Reinitialization
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,11 +27,11 @@ namespace EF_Messages.Migrations
 
             modelBuilder.Entity("EF_Messages.MS_Message", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("MessageId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MessageId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -43,7 +43,7 @@ namespace EF_Messages.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+                    b.HasKey("MessageId");
 
                     b.HasIndex("SentByUserId");
 
@@ -52,11 +52,11 @@ namespace EF_Messages.Migrations
 
             modelBuilder.Entity("EF_Messages.MS_Thread", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("ThreadId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ThreadId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -68,7 +68,7 @@ namespace EF_Messages.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+                    b.HasKey("ThreadId");
 
                     b.HasIndex("CreatedByUserId");
 
@@ -77,70 +77,60 @@ namespace EF_Messages.Migrations
 
             modelBuilder.Entity("EF_Messages.MS_User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("UserId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+                    b.HasKey("UserId");
 
                     b.ToTable("Users");
                 });
 
             modelBuilder.Entity("EF_Messages.ThreadToMessage", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("ThreadId")
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("MessageId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ThreadId")
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Id")
                         .HasColumnType("int");
 
                     b.Property<int>("position")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.HasKey("ThreadId", "MessageId");
 
                     b.HasIndex("MessageId");
 
-                    b.HasIndex("ThreadId");
-
-                    b.ToTable("ThreadToMessages");
+                    b.ToTable("ThreadToMessage");
                 });
 
             modelBuilder.Entity("EF_Messages.ThreadToUser", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Owner")
-                        .HasColumnType("bit");
-
                     b.Property<int>("ThreadId")
                         .HasColumnType("int");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
 
-                    b.HasIndex("ThreadId");
+                    b.Property<bool>("Owner")
+                        .HasColumnType("bit");
+
+                    b.HasKey("ThreadId", "UserId");
 
                     b.HasIndex("UserId");
 
@@ -152,7 +142,7 @@ namespace EF_Messages.Migrations
                     b.HasOne("EF_Messages.MS_User", "SentByUser")
                         .WithMany("Messages")
                         .HasForeignKey("SentByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("SentByUser");
@@ -163,7 +153,7 @@ namespace EF_Messages.Migrations
                     b.HasOne("EF_Messages.MS_User", "CreatedByUser")
                         .WithMany("Threads")
                         .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("CreatedByUser");

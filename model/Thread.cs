@@ -8,10 +8,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EF_Messages
 {
-    [PrimaryKey("Id")]
+    [PrimaryKey("ThreadId")]
     public class MS_Thread
     {
-        public int Id { get; set; }
+        public int ThreadId { get; set; }
         public string Name { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -25,25 +25,30 @@ namespace EF_Messages
 
         public MS_Thread(string name, int createdByUserId)
         {
-            this.Id = 0; // This will be set by the database
+            this.ThreadId = 0; // This will be set by the database
             this.CreatedAt = DateTime.UtcNow;
             this.Name = name;
             this.CreatedByUserId = createdByUserId;
 
-            ThreadToUser threadToUser = new ThreadToUser(this.Id, this.CreatedByUserId, true);
+            ThreadToUser threadToUser = new ThreadToUser(this.ThreadId, this.CreatedByUserId, true);
             this.ThreadToUsers.Add(threadToUser);
             threadToUser.Thread = this;
         }
 
         public MS_Thread()
         {
-            this.Id = 0; // This will be set by the database
+            this.ThreadId = 0; // This will be set by the database
             this.CreatedAt = DateTime.UtcNow;
             this.Name = string.Empty;
             this.CreatedByUserId = 0;
         }
     }
 
+
+
+
+// thread structure for the message system
+    [Table("ThreadToMessage")]
     [PrimaryKey("Id")]
     public class ThreadToMessage
     {
@@ -69,7 +74,17 @@ namespace EF_Messages
             this.ThreadId = threadId;
             this.MessageId = messageId;
         }
+
+        public ThreadToMessage()
+        {
+            this.Id = 0; // This will be set by the database
+            this.ThreadId = 0;
+            this.MessageId = 0;
+            this.position = 0;
+            this.CreatedAt = DateTime.UtcNow;
+        }
     }
+    
     [PrimaryKey("Id")]
     [Table("ThreadToUser")]
     public class ThreadToUser

@@ -18,7 +18,6 @@ namespace EF_Messages
         public DbSet<ThreadToUser> ThreadToUsers { get; set; }
         public DbSet<ThreadToMessage> ThreadToMessages { get; set; }
 
-
         public MessageSystemContext(IConfiguration configuration)
         {
             appConfig = configuration;
@@ -43,6 +42,33 @@ namespace EF_Messages
         {
             System.Globalization.CultureInfo.CurrentCulture = cultureInfo;
             System.Globalization.CultureInfo.CurrentUICulture = cultureInfo;
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // One-to-many: MS_User -> MS_Message
+            modelBuilder.Entity<MS_Message>()
+                .HasOne(m => m.SentByUser)
+                .WithMany(u => u.Messages)
+                .HasForeignKey(m => m.SentByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // One-to-many: MS_User -> MS_Thread
+            modelBuilder.Entity<MS_Thread>()
+                .HasOne(t => t.CreatedByUser)
+                .WithMany(u => u.Threads)
+                .HasForeignKey(t => t.CreatedByUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Many-to-many: MS_Thread <-> MS_Message
+            modelBuilder.Entity<ThreadToMessage>()
+                .HasKey(tm => new { tm.ThreadId, tm.MessageId });
+
+            // Many-to-many: MS_Thread <-> MS_User
+            modelBuilder.Entity<ThreadToUser>()
+                .HasKey(tu => new { tu.ThreadId, tu.UserId });
         }
     }
 }

@@ -177,3 +177,4 @@ C:\Work\EF_Messages\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstract
 C:\Work\EF_Messages\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Physical.dll
 C:\Work\EF_Messages\bin\Debug\net9.0\Microsoft.Extensions.FileSystemGlobbing.dll
 C:\Work\EF_Messages\bin\Debug\net9.0\appSettings.json
+C:\Work\EF_Messages\obj\Debug\net9.0\EF_Messages.sourcelink.json

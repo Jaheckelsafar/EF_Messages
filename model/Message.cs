@@ -7,10 +7,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EF_Messages
 {
-    [PrimaryKey("Id")]
+    [PrimaryKey("MessageId")]
     public class MS_Message
     {
-        public int Id { get; set; }
+        public int MessageId { get; set; }
         public string Text { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -22,7 +22,7 @@ namespace EF_Messages
 
         public MS_Message(string text, int sentByUserId)
         {
-            this.Id = 0; // This will be set by the database
+            this.MessageId = 0; // This will be set by the database
             this.CreatedAt = DateTime.UtcNow;
             this.Text = text;
             this.SentByUserId = sentByUserId;
@@ -30,7 +30,7 @@ namespace EF_Messages
 
         public MS_Message()
         {
-            this.Id = 0;
+            this.MessageId = 0;
             this.Text = string.Empty;
             this.CreatedAt = DateTime.UtcNow;
             this.SentByUserId = 0;
