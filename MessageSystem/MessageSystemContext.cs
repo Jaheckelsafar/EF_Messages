@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace EF_Messages
 {
-    class MessageSystemContext : DbContext
+    public class MessageSystemContext : DbContext
     {
         private readonly IConfiguration appConfig;
         public DbSet<MS_Message> Messages { get; set; }
@@ -48,12 +48,22 @@ namespace EF_Messages
         {
             base.OnModelCreating(modelBuilder);
 
-            // One-to-many: MS_User -> MS_Message
+            //**************** MS_MESSAGE SETUP ****************
+            // Setup MS_Message primaryKey
+            modelBuilder.Entity<MS_Message>()
+                .HasKey(m => m.MessageId);
+
+            // Setup One-to-many: MS_User -> MS_Message
             modelBuilder.Entity<MS_Message>()
                 .HasOne(m => m.SentByUser)
                 .WithMany(u => u.Messages)
                 .HasForeignKey(m => m.SentByUserId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            //**************** MS_THREAD SETUP ****************
+            // Setup MS_Thread primaryKey
+            modelBuilder.Entity<MS_Thread>()
+                .HasKey(t => t.ThreadId);
 
             // One-to-many: MS_User -> MS_Thread
             modelBuilder.Entity<MS_Thread>()
@@ -62,13 +72,15 @@ namespace EF_Messages
                 .HasForeignKey(t => t.CreatedByUserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            // Many-to-many: MS_Thread <-> MS_Message
+            //**************** THREADTOMESSAGE SETUP ****************
+            // Setup ThreadToMessage primaryKey
             modelBuilder.Entity<ThreadToMessage>()
-                .HasKey(tm => new { tm.ThreadId, tm.MessageId });
+                .HasKey(tm => new { tm.Id });
 
-            // Many-to-many: MS_Thread <-> MS_User
+            //**************** THREADTOUSER SETUP ****************
+            // Setup ThreadToUser primaryKey
             modelBuilder.Entity<ThreadToUser>()
-                .HasKey(tu => new { tu.ThreadId, tu.UserId });
+                .HasKey(tu => new { tu.Id });
         }
     }
 }

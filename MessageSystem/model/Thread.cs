@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+        using System.Linq;
+        using System.Text.Json;
+
 
 
 namespace EF_Messages
@@ -41,6 +44,31 @@ namespace EF_Messages
             this.CreatedAt = DateTime.UtcNow;
             this.Name = string.Empty;
             this.CreatedByUserId = 0;
+        }
+
+
+        public static string GetMessagesJsonByThreadId(int threadId, DbContext dbContext)
+        {
+            var messages = dbContext.Set<ThreadToMessage>()
+                .Where(ttm => ttm.ThreadId == threadId)
+                .OrderBy(ttm => ttm.Position)
+                .Select(ttm => new
+                {
+                    ttm.MessageId,
+                    ttm.Position,
+                    ttm.CreatedAt,
+                    Message = ttm.Message != null ? new
+                    {
+                        ttm.Message.MessageId,
+                        ttm.Message.Text,
+                        ttm.Message.CreatedAt,
+                        ttm.Message.SentByUserId,
+                        ttm.Message.SentByUser.Name
+                    } : null
+                })
+                .ToList();
+
+            return JsonSerializer.Serialize(messages);
         }
     }
 
