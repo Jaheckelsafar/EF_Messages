@@ -68,6 +68,18 @@ public partial class Program
             ).WithName("GetThread")
             ;//.RequireAuthorization();
 
+
+            app.MapPut("Login", (string username, string password) =>
+            {
+                var token = SecurityService.Login(username, password, context);
+                if (token == null)
+                {
+                    return Results.Unauthorized();
+                }
+                return Results.Ok(new { Token = token });
+            }).WithName("Login");
+
+
             app.Run();
         }
     }   

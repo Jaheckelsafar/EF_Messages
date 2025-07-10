@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EF_Messages.Migrations
 {
     /// <inheritdoc />
-    public partial class Reinitialization : Migration
+    public partial class Reinit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,6 +17,8 @@ namespace EF_Messages.Migrations
                 {
                     UserId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -65,26 +67,27 @@ namespace EF_Messages.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ThreadToMessage",
+                name: "ThreadToMessages",
                 columns: table => new
                 {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     ThreadId = table.Column<int>(type: "int", nullable: false),
                     MessageId = table.Column<int>(type: "int", nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    position = table.Column<int>(type: "int", nullable: false),
+                    Position = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ThreadToMessage", x => new { x.ThreadId, x.MessageId });
+                    table.PrimaryKey("PK_ThreadToMessages", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_ThreadToMessage_Messages_MessageId",
+                        name: "FK_ThreadToMessages_Messages_MessageId",
                         column: x => x.MessageId,
                         principalTable: "Messages",
                         principalColumn: "MessageId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ThreadToMessage_Threads_ThreadId",
+                        name: "FK_ThreadToMessages_Threads_ThreadId",
                         column: x => x.ThreadId,
                         principalTable: "Threads",
                         principalColumn: "ThreadId",
@@ -95,14 +98,16 @@ namespace EF_Messages.Migrations
                 name: "ThreadToUser",
                 columns: table => new
                 {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Owner = table.Column<bool>(type: "bit", nullable: false),
                     ThreadId = table.Column<int>(type: "int", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    Owner = table.Column<bool>(type: "bit", nullable: false)
+                    LastReadPosition = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ThreadToUser", x => new { x.ThreadId, x.UserId });
+                    table.PrimaryKey("PK_ThreadToUser", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ThreadToUser_Threads_ThreadId",
                         column: x => x.ThreadId,
@@ -128,9 +133,19 @@ namespace EF_Messages.Migrations
                 column: "CreatedByUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ThreadToMessage_MessageId",
-                table: "ThreadToMessage",
+                name: "IX_ThreadToMessages_MessageId",
+                table: "ThreadToMessages",
                 column: "MessageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ThreadToMessages_ThreadId",
+                table: "ThreadToMessages",
+                column: "ThreadId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ThreadToUser_ThreadId",
+                table: "ThreadToUser",
+                column: "ThreadId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ThreadToUser_UserId",
@@ -142,7 +157,7 @@ namespace EF_Messages.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ThreadToMessage");
+                name: "ThreadToMessages");
 
             migrationBuilder.DropTable(
                 name: "ThreadToUser");

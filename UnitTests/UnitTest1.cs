@@ -3,9 +3,6 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Microsoft.AspNetCore.Mvc.Testing;
-using EF_Messages;
-
-
 
 namespace UnitTests;
 
@@ -22,10 +19,7 @@ public class Tests
     [Test]
     public async Task GetThread_ReturnsOk()
     {
-        // Arrange
         var client = _factory.CreateClient();
-
-        // Act
         var response = await client.GetAsync("/getthread/1");
 
         // Assert

@@ -42,8 +42,8 @@ partial class Program
             // Ensure the database is created
             context.Database.EnsureCreated();
 
-            AddUsers(configuration);
-            AddThreads(configuration);
+            AddUsers(context);
+            AddThreads(context);
 
             // Add a new message
             var message = new MS_Message { Text = "Hello, World!", SentByUserId = context.Users.Where(s => s.Name == "John Doe").First().UserId };
@@ -100,64 +100,56 @@ partial class Program
         }
     }
 
-    static void AddUsers(IConfiguration configuration)
+    static void AddUsers(MessageSystemContext context)
     {
-
-        using (var context = new MessageSystemContext(configuration))
+        // Add a new user if it does not exist
+        var user = context.Users.Where(s => s.Name == "John Doe").FirstOrDefault();
+        if (user == null)
         {
+            user = new MS_User { Name = "John Doe" };
+            context.Users.Add(user);
+            context.SaveChanges();
+        }
 
-            // Add a new user if it does not exist
-            var user = context.Users.Where(s => s.Name == "John Doe").FirstOrDefault();
-            if (user == null)
+        // Add a collection of users if they do not exist
+        if ((context.Users.Where(s => s.Name == "Jane Doe").FirstOrDefault() == null) &&
+            (context.Users.Where(s => s.Name == "Jack Doe").FirstOrDefault() == null)
+        )
+        {
+            List<MS_User> users = new List<MS_User>
             {
-                user = new MS_User { Name = "John Doe" };
-                context.Users.Add(user);
-                context.SaveChanges();
-            }
+                new MS_User { Name = "Jane Doe" },
+                new MS_User { Name = "Jack Doe" },
+            };
+            context.Users.AddRange(users);
+        }
 
-            // Add a collection of users if they do not exist
-            if ((context.Users.Where(s => s.Name == "Jane Doe").FirstOrDefault() == null) &&
-                (context.Users.Where(s => s.Name == "Jack Doe").FirstOrDefault() == null)
-            )
-            {
-                List<MS_User> users = new List<MS_User>
-                {
-                    new MS_User { Name = "Jane Doe" },
-                    new MS_User { Name = "Jack Doe" },
-                };
-                context.Users.AddRange(users);
-            }
-
-            // add user to the context rather than the set within the context
-            user = context.Users.Where(s => s.Name == "June Doe").FirstOrDefault();
-            if (user == null)
-            {
-                user = new MS_User { Name = "June Doe" };
-                context.Add<MS_User>(user);
-                context.SaveChanges();
-            }
+        // add user to the context rather than the set within the context
+        user = context.Users.Where(s => s.Name == "June Doe").FirstOrDefault();
+        if (user == null)
+        {
+            user = new MS_User { Name = "June Doe" };
+            context.Add<MS_User>(user);
+            context.SaveChanges();
         }
     }
 
-    static void AddThreads(IConfiguration configuration)
+    static void AddThreads(MessageSystemContext context)
     {
-        using (var context = new MessageSystemContext(configuration))
+        // Add a new thread
+        var thread = context.Threads.Where(s => s.Name == "General Chat").FirstOrDefault();
+        if (thread == null)
         {
-            // Add a new thread
-            var thread = context.Threads.Where(s => s.Name == "General Chat").FirstOrDefault();
-            if (thread == null)
-            {
-                thread = new MS_Thread("General Chat", context.Users.Where(s => s.Name == "John Doe").First().UserId);
-                context.Threads.Add(thread);
-                context.SaveChanges();
-            }
-            thread = context.Threads.Where(s => s.Name == "CATS!!!!!").FirstOrDefault();
-            if (thread == null)
-            {
-                thread = new MS_Thread("CATS!!!!!", context.Users.Where(s => s.Name == "June Doe").First().UserId);
-                context.Threads.Add(thread);
-                context.SaveChanges();
-            }
+            thread = new MS_Thread("General Chat", context.Users.Where(s => s.Name == "John Doe").First().UserId);
+            context.Threads.Add(thread);
+            context.SaveChanges();
+        }
+        thread = context.Threads.Where(s => s.Name == "CATS!!!!!").FirstOrDefault();
+        if (thread == null)
+        {
+            thread = new MS_Thread("CATS!!!!!", context.Users.Where(s => s.Name == "June Doe").First().UserId);
+            context.Threads.Add(thread);
+            context.SaveChanges();
         }
     }
 

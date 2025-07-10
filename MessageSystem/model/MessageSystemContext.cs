@@ -81,6 +81,19 @@ namespace EF_Messages
             // Setup ThreadToUser primaryKey
             modelBuilder.Entity<ThreadToUser>()
                 .HasKey(tu => new { tu.Id });
+
+            modelBuilder.Entity<MS_User>()
+                .HasKey(u => u.UserId);
+
+            modelBuilder.Entity<MS_User>()
+                .Property(u => u.UserName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            modelBuilder.Entity<MS_User>()
+                .Property(u => u.Password)
+                .IsRequired()
+                .HasMaxLength(100);
         }
     }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EF_Messages.Migrations
 {
     [DbContext(typeof(MessageSystemContext))]
-    [Migration("20250601073341_AddedUserThreadPositionTracking")]
-    partial class AddedUserThreadPositionTracking
+    [Migration("20250710151434_Reinit")]
+    partial class Reinit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -87,6 +87,14 @@ namespace EF_Messages.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("UserId");
 
                     b.ToTable("Users");
@@ -94,38 +102,40 @@ namespace EF_Messages.Migrations
 
             modelBuilder.Entity("EF_Messages.ThreadToMessage", b =>
                 {
-                    b.Property<int>("ThreadId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("MessageId")
-                        .HasColumnType("int");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Id")
+                    b.Property<int>("MessageId")
                         .HasColumnType("int");
 
                     b.Property<int>("Position")
                         .HasColumnType("int");
 
-                    b.HasKey("ThreadId", "MessageId");
+                    b.Property<int>("ThreadId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("MessageId");
+
+                    b.HasIndex("ThreadId");
 
                     b.ToTable("ThreadToMessages");
                 });
 
             modelBuilder.Entity("EF_Messages.ThreadToUser", b =>
                 {
-                    b.Property<int>("ThreadId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<int>("LastReadPosition")
                         .HasColumnType("int");
@@ -133,7 +143,15 @@ namespace EF_Messages.Migrations
                     b.Property<bool>("Owner")
                         .HasColumnType("bit");
 
-                    b.HasKey("ThreadId", "UserId");
+                    b.Property<int>("ThreadId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ThreadId");
 
                     b.HasIndex("UserId");
 
