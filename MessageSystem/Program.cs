@@ -106,7 +106,7 @@ partial class Program
         var user = context.Users.Where(s => s.Name == "John Doe").FirstOrDefault();
         if (user == null)
         {
-            user = new MS_User { Name = "John Doe" };
+            user = new MS_User { Name = "John Doe", UserName = "john", Password = "password123" };
             context.Users.Add(user);
             context.SaveChanges();
         }
@@ -118,8 +118,8 @@ partial class Program
         {
             List<MS_User> users = new List<MS_User>
             {
-                new MS_User { Name = "Jane Doe" },
-                new MS_User { Name = "Jack Doe" },
+                new MS_User { Name = "Jane Doe", UserName = "jane", Password = "password123" },
+                new MS_User { Name = "Jack Doe", UserName = "jack", Password = "password123" },
             };
             context.Users.AddRange(users);
         }
@@ -128,7 +128,7 @@ partial class Program
         user = context.Users.Where(s => s.Name == "June Doe").FirstOrDefault();
         if (user == null)
         {
-            user = new MS_User { Name = "June Doe" };
+            user = new MS_User { Name = "June Doe", UserName = "june", Password = "password123" };
             context.Add<MS_User>(user);
             context.SaveChanges();
         }

@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Text.Json;
 
 namespace UnitTests;
 
@@ -19,13 +20,29 @@ public class Tests
     [Test]
     public async Task GetThread_ReturnsOk()
     {
+        
+
         var client = _factory.CreateClient();
-        var response = await client.GetAsync("/getthread/1");
+        //var response = await client.GetAsync("/getthread/1");
+
+        var response = await client.GetAsync("/login?un=john&pw=password123");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK).Or.EqualTo(HttpStatusCode.NotFound));
+
+
+        var contentString = await response.Content.ReadAsStringAsync();
+
+        var blah = JsonDocument.Parse(contentString);
+        var token = blah.RootElement.GetProperty("token").GetString();
+
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        response = await client.GetAsync("/getthread/1");
 
         // Assert
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK).Or.EqualTo(HttpStatusCode.NotFound));
 
-        var contentString = await response.Content.ReadAsStringAsync();
+        contentString = await response.Content.ReadAsStringAsync();
 
         Console.WriteLine(contentString);
         // You can add more assertions here based on your expected response
