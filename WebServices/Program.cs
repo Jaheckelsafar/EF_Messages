@@ -78,8 +78,8 @@ public partial class Program
                 }
                 return Results.Ok(thread);
             }
-            ).WithName("GetThread")
-            .RequireAuthorization();
+            ).WithName("GetThread");
+            //.RequireAuthorization();
 
 /*
             app.MapPut("Login", (string username, string password) =>

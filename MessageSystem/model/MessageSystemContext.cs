@@ -87,8 +87,16 @@ namespace EF_Messages
 
             modelBuilder.Entity<MS_User>()
                 .Property(u => u.UserName)
+                .UseCollation("SQL_Latin1_General_CP1_CI_AS");
+
+            modelBuilder.Entity<MS_User>()
+                .Property(u => u.UserName)
                 .IsRequired()
                 .HasMaxLength(100);
+
+            modelBuilder.Entity<MS_User>()
+                .HasIndex(u => u.UserName)
+                .IsUnique();
 
             modelBuilder.Entity<MS_User>()
                 .Property(u => u.Password)

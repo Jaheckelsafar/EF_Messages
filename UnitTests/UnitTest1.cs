@@ -40,7 +40,7 @@ public class Tests
         response = await client.GetAsync("/getthread/1");
 
         // Assert
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK).Or.EqualTo(HttpStatusCode.NotFound));
+         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK).Or.EqualTo(HttpStatusCode.NotFound));
 
         contentString = await response.Content.ReadAsStringAsync();
 

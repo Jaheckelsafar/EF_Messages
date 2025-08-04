@@ -48,13 +48,12 @@ public static class SecurityService
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = issuer,
             ValidateAudience = true,
-            ValidAudience = audience,
             ValidateIssuerSigningKey = true,
+
+            ValidIssuer = issuer,
+            ValidAudience = audience,
             IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(5)
         };
 
         try
@@ -62,7 +61,7 @@ public static class SecurityService
             var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
             return principal;
         }
-        catch
+         catch (Exception ex)
         {
             return null;
         }

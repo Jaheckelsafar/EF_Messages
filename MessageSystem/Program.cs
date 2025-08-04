@@ -45,20 +45,25 @@ partial class Program
             AddUsers(context);
             AddThreads(context);
 
-            // Add a new message
-            var message = new MS_Message { Text = "Hello, World!", SentByUserId = context.Users.Where(s => s.Name == "John Doe").First().UserId };
-            AddMessageToThread(configuration, message, 1); // Assuming threadId 1 is "General Chat"
-            message = new MS_Message { Text = "Goodbye, World!", SentByUserId = context.Users.Where(s => s.Name == "Jane Doe").First().UserId };
-            AddMessageToThread(configuration, message, 1); // Assuming threadId 1 is "General Chat"
-            message = new MS_Message { Text = "Meow!", SentByUserId = context.Users.Where(s => s.Name == "June Doe").First().UserId };
-            AddMessageToThread(configuration, message, 2); // Assuming threadId 2 is "CATS!!!!!"
-            message = new MS_Message { Text = "Stop being so dramatic Jane.", SentByUserId = context.Users.Where(s => s.Name == "Jack Doe").First().UserId };
-            AddMessageToThread(configuration, message, 1); // Assuming threadId 1 is "General Chat"
-            message = new MS_Message { Text = "What?", SentByUserId = context.Users.Where(s => s.Name == "Jack Doe").First().UserId };
-            AddMessageToThread(configuration, message, 2); // Assuming threadId 2 is "CATS!!!!!"
-            message = new MS_Message { Text = "Meow!", SentByUserId = context.Users.Where(s => s.Name == "June Doe").First().UserId };
-            AddMessageToThread(configuration, message, 2); // Assuming threadId 2 is "CATS!!!!!"
+            MS_User? usrJohn = MS_User.GetUserByName(context, "john");
+            MS_User? usrJane = MS_User.GetUserByName(context, "jane");
+            MS_User? usrJune = MS_User.GetUserByName(context, "june");
+            MS_User? usrJack = MS_User.GetUserByName(context, "jack");
 
+
+            var message = new MS_Message { Text = "Hello, World!", SentByUserId = usrJohn.UserId };
+            MS_Thread thrdGen = MS_Thread.CreateThread("General Chat", usrJohn.UserId, message, new List<MS_User> { usrJane, usrJack, usrJune }, context);
+            message = new MS_Message { Text = "Goodbye, World!", SentByUserId = usrJane.UserId };
+            thrdGen.InsertMessage(
+                new MS_Message { Text = "Stop being so dramatic Jane.", SentByUserId = usrJack.UserId },
+                context);
+            MS_Thread thrdCats = MS_Thread.CreateThread("CATS!!!!!", usrJune.UserId, message, new List<MS_User> { usrJohn, usrJane, usrJack }, context);
+            message = new MS_Message { Text = "Meow!", SentByUserId = usrJune.UserId };
+            thrdCats.InsertMessage(message, context);
+            message = new MS_Message { Text = "What?", SentByUserId = usrJack.UserId };
+            thrdCats.InsertMessage(message, context);
+            message = new MS_Message { Text = "Meow!", SentByUserId = usrJune.UserId };
+            thrdCats.InsertMessage(message, context);
 
             // display all users and messages
             Console.WriteLine("Users and Messages in the Database:");
@@ -102,35 +107,27 @@ partial class Program
 
     static void AddUsers(MessageSystemContext context)
     {
-        // Add a new user if it does not exist
-        var user = context.Users.Where(s => s.Name == "John Doe").FirstOrDefault();
-        if (user == null)
+        using (var transaction = context.Database.BeginTransaction())
         {
-            user = new MS_User { Name = "John Doe", UserName = "john", Password = "password123" };
-            context.Users.Add(user);
-            context.SaveChanges();
-        }
-
-        // Add a collection of users if they do not exist
-        if ((context.Users.Where(s => s.Name == "Jane Doe").FirstOrDefault() == null) &&
-            (context.Users.Where(s => s.Name == "Jack Doe").FirstOrDefault() == null)
-        )
-        {
-            List<MS_User> users = new List<MS_User>
+            try
             {
-                new MS_User { Name = "Jane Doe", UserName = "jane", Password = "password123" },
-                new MS_User { Name = "Jack Doe", UserName = "jack", Password = "password123" },
-            };
-            context.Users.AddRange(users);
-        }
+                MS_User.CreateUser("john", "password123", "John Doe", context);
 
-        // add user to the context rather than the set within the context
-        user = context.Users.Where(s => s.Name == "June Doe").FirstOrDefault();
-        if (user == null)
-        {
-            user = new MS_User { Name = "June Doe", UserName = "june", Password = "password123" };
-            context.Add<MS_User>(user);
-            context.SaveChanges();
+                List<MS_User> users = new List<MS_User> {
+                    new MS_User { Name = "Jane Doe", UserName = "jane", Password = "password123" },
+                    new MS_User { Name = "Jack Doe", UserName = "jack", Password = "password123" },
+                };
+                MS_User.ImportUsers(users, context);
+
+                MS_User.CreateUser("june", "password123", "June Doe", context);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding users: {ex.Message}");
+                transaction.Rollback();
+                return;
+            }
+            transaction.Commit();
         }
     }
 
@@ -150,53 +147,6 @@ partial class Program
             thread = new MS_Thread("CATS!!!!!", context.Users.Where(s => s.Name == "June Doe").First().UserId);
             context.Threads.Add(thread);
             context.SaveChanges();
-        }
-    }
-
-    static void AddMessageToThread(IConfiguration configuration, MS_Message message, int threadId)
-    {
-        using (var context = new MessageSystemContext(configuration))
-        {
-            if (message == null || threadId <= 0)
-            {
-                throw new ArgumentException("Message or threadId cannot be null or zero.");
-            }
-
-            // insert message into the database
-            context.Messages.Add(message);
-            context.SaveChanges();
-
-            // insert threadToMessage into the database
-            if (context.Threads.Where(t => t.ThreadId == threadId).Count() == 0)
-            {
-                throw new ArgumentException("Thread does not exist.");
-            }
-            var threadToMessage = new ThreadToMessage
-            {
-                MessageId = message.MessageId,
-                ThreadId = threadId,
-                Position = context.ThreadToMessages.Count(t => t.ThreadId == threadId) + 1
-            };
-            context.ThreadToMessages.Add(threadToMessage);
-            context.SaveChanges();
-
-            // insert threadToUser into the database if it does not exist
-            // Check if the user is already in the thread
-            if (context.ThreadToUsers.Where(
-                th => th.UserId == message.SentByUserId
-                && th.ThreadId == context.Threads.Where(
-                    th => th.ThreadId == threadId
-                ).First().ThreadId
-            ).Count() == 0)
-            {
-                var threadToUser = new ThreadToUser
-                {
-                    UserId = message.SentByUserId,
-                    ThreadId = threadId
-                };
-                context.ThreadToUsers.Add(threadToUser);
-                context.SaveChanges();
-            }
         }
     }
 }
