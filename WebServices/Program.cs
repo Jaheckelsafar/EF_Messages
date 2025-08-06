@@ -28,9 +28,32 @@ public partial class Program
                 options.Audience = SecurityService.Audience;        // <-- Replace with your audience
                                                                     // For development, you can set options.RequireHttpsMetadata = false;
                 options.RequireHttpsMetadata = false;
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var token = context.Request.Headers["Authorization"].ToString();
+                        if (!string.IsNullOrEmpty(token) && token.StartsWith("Bearer "))
+                        {
+                            token = token.Substring("Bearer ".Length);
+                            var principal = SecurityService.ValidateJwtToken(token, SecurityService.Issuer, SecurityService.Audience, SecurityService.SecretKey);
+                            if (principal != null)
+                            {
+                                context.Principal = principal;
+                                context.Success();
+                            }
+                            else
+                            {
+                                context.Fail("Invalid JWT token.");
+                            }
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
         builder.Services.AddAuthorization();
+        builder.Services.AddControllers();
 
 
 
@@ -51,64 +74,14 @@ public partial class Program
 
         app.UseAuthentication();
         app.UseAuthorization();
-
+        
+        app.MapControllers();
 
 
         using (var context = new EF_Messages.MessageSystemContext(configuration))
         {
             // Ensure the database is created
             context.Database.EnsureCreated();
-
-            app.MapGet("getthread/{tid}", (HttpRequest req, int tid) =>
-            {
-                var authHeader = req.Headers["Authorization"].ToString();
-                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-                    return Results.Unauthorized();
-
-                var token = authHeader.Substring("Bearer ".Length);
-
-                var principal = SecurityService.ValidateJwtToken(token, SecurityService.Issuer, SecurityService.Audience, SecurityService.SecretKey);
-                if (principal == null)
-                    return Results.Unauthorized();
-
-                var thread = MS_Thread.GetMessagesJsonByThreadId(tid, context);
-                if (string.IsNullOrEmpty(thread))
-                {
-                    return Results.NotFound("Thread not found.");
-                }
-                return Results.Ok(thread);
-            }
-            ).WithName("GetThread");
-            //.RequireAuthorization();
-
-/*
-            app.MapPut("Login", (string username, string password) =>
-            {
-                var token = SecurityService.Login(username, password, context);
-                if (token == null)
-                {
-                    return Results.Unauthorized();
-                }
-                return Results.Ok(new { Token = token });
-            }).WithName("Login");
-*/
-
-            app.MapGet("Login", (HttpRequest req) =>
-            {
-
-                string un = req.Query["un"];
-                string pw = req.Query["pw"];
-
-
-                var token = SecurityService.Login(un, pw, context);
-                if (token == null)
-                {
-                    return Results.Unauthorized();
-                }
-                return Results.Ok(new { Token = token });
-            }
-            ).WithName("Login");
-
 
             app.Run();
         }
