@@ -34,7 +34,36 @@ namespace EF_Messages
             this.Text = string.Empty;
             this.CreatedAt = DateTime.UtcNow;
             this.SentByUserId = 0;
-            this.ThreadToMessages = new List<ThreadToMessage>();
+        }
+
+
+
+        public static MS_Message InsertMessage(MS_Message message, MessageSystemContext context)
+        {
+            if (message == null)
+                throw new ArgumentNullException(nameof(message), "Message cannot be null");
+            if (string.IsNullOrWhiteSpace(message.Text))
+                throw new ArgumentException("Message text cannot be empty", nameof(message.Text));
+            if (!MS_User.ValidateUserId(context, message.SentByUserId, false))
+                throw new ArgumentException("SentByUserId must be a valid user ID", nameof(message.SentByUserId));
+
+            context.Messages.Add(message);
+            context.SaveChanges();
+
+            return message;
+        }
+
+        public static MS_Message CreateMessage(int SentByUserId, string Text, MessageSystemContext context)
+        {
+            if (!MS_User.ValidateUserId(context, SentByUserId, false))
+                throw new ArgumentException("SentByUserId must be a valid user ID", nameof(SentByUserId));
+            if (string.IsNullOrWhiteSpace(Text))
+                throw new ArgumentException("Message text cannot be empty", nameof(Text));
+            MS_Message msg = new MS_Message(Text, SentByUserId);
+            context.Messages.Add(msg);
+            context.SaveChanges();
+
+            return msg;
         }
     }
 }

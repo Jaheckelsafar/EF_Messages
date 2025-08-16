@@ -44,6 +44,11 @@ namespace EF_Messages
             return users.Count() == userIds.Count;
         }
 
+        public static bool ValidateUserId(DbContext context, int userId, bool requireActive = true)
+        {
+            return ValidateUserIds(context, new List<int> { userId }, requireActive);
+        }
+
         public static MS_User CreateUser(string userName, string password, string name, DbContext context)
         {
             if (string.IsNullOrWhiteSpace(userName))
@@ -82,7 +87,7 @@ namespace EF_Messages
             int pos = 0;
             foreach (var user in users)
             {
-                if (user.IsValid(context))
+                if (!user.IsValid(context))
                     throw new InvalidOperationException($"Invalid user at position {pos}.");
                 pos++;
             }

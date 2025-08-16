@@ -43,7 +43,6 @@ partial class Program
             context.Database.EnsureCreated();
 
             AddUsers(context);
-            AddThreads(context);
 
             MS_User? usrJohn = MS_User.GetUserByName(context, "john");
             MS_User? usrJane = MS_User.GetUserByName(context, "jane");
@@ -52,12 +51,12 @@ partial class Program
 
 
             var message = new MS_Message { Text = "Hello, World!", SentByUserId = usrJohn.UserId };
-            MS_Thread thrdGen = MS_Thread.CreateThread("General Chat", usrJohn.UserId, message, new List<MS_User> { usrJane, usrJack, usrJune }, context);
+            MS_Thread thrdGen = MS_Thread.CreateThread("General Chat", message, new List<MS_User> { usrJane, usrJack, usrJune }, context);
             message = new MS_Message { Text = "Goodbye, World!", SentByUserId = usrJane.UserId };
             thrdGen.InsertMessage(
                 new MS_Message { Text = "Stop being so dramatic Jane.", SentByUserId = usrJack.UserId },
                 context);
-            MS_Thread thrdCats = MS_Thread.CreateThread("CATS!!!!!", usrJune.UserId, message, new List<MS_User> { usrJohn, usrJane, usrJack }, context);
+            MS_Thread thrdCats = MS_Thread.CreateThread("CATS!!!!!", message, new List<MS_User> { usrJohn, usrJane, usrJack }, context);
             message = new MS_Message { Text = "Meow!", SentByUserId = usrJune.UserId };
             thrdCats.InsertMessage(message, context);
             message = new MS_Message { Text = "What?", SentByUserId = usrJack.UserId };

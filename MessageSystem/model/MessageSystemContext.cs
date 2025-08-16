@@ -82,6 +82,8 @@ namespace EF_Messages
             modelBuilder.Entity<ThreadToUser>()
                 .HasKey(tu => new { tu.Id });
 
+            //**************** USER SETUP ****************
+            // Setup ThreadToUser primaryKey
             modelBuilder.Entity<MS_User>()
                 .HasKey(u => u.UserId);
 
