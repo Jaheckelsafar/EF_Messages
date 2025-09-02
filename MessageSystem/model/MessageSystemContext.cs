@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.Json;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 
 
@@ -10,6 +14,9 @@ namespace EF_Messages
 {
     public class MessageSystemContext : DbContext
     {
+        private readonly ValidationInterceptor _validationInterceptor;
+        // private readonly CommandLoggingInterceptor _commandLoggingInterceptor;
+
         private readonly IConfiguration appConfig;
         public DbSet<MS_Message> Messages { get; set; }
         public DbSet<MS_User> Users { get; set; }
@@ -31,17 +38,31 @@ namespace EF_Messages
                 .Build();
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlServer(appConfig.GetConnectionString("MessageSystemConnection"));
-            //optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=MessageSystemDb;Trusted_Connection=True;");
-        }
-
         public MessageSystemContext(IConfiguration configuration, System.Globalization.CultureInfo cultureInfo)
             : this(configuration)
         {
             System.Globalization.CultureInfo.CurrentCulture = cultureInfo;
             System.Globalization.CultureInfo.CurrentUICulture = cultureInfo;
+            _validationInterceptor = new ValidationInterceptor();
+            // _commandLoggingInterceptor = new CommandLoggingInterceptor();
+        }
+
+        public MessageSystemContext(IConfiguration configuration, ValidationInterceptor validationInterceptor)
+            : this(configuration)
+        {
+            _validationInterceptor = validationInterceptor;
+            // _commandLoggingInterceptor = new CommandLoggingInterceptor();
+        }
+
+
+
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlServer(appConfig.GetConnectionString("MessageSystemConnection"));
+            //optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=MessageSystemDb;Trusted_Connection=True;");
+            //optionsBuilder.AddInterceptors(_validationInterceptor, _commandLoggingInterceptor);
+            optionsBuilder.AddInterceptors(new ValidationInterceptor());
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -89,10 +110,7 @@ namespace EF_Messages
 
             modelBuilder.Entity<MS_User>()
                 .Property(u => u.UserName)
-                .UseCollation("SQL_Latin1_General_CP1_CI_AS");
-
-            modelBuilder.Entity<MS_User>()
-                .Property(u => u.UserName)
+                .UseCollation("SQL_Latin1_General_CP1_CI_AS")   //CASE INSENSITIVE
                 .IsRequired()
                 .HasMaxLength(100);
 
@@ -104,6 +122,91 @@ namespace EF_Messages
                 .Property(u => u.Password)
                 .IsRequired()
                 .HasMaxLength(100);
+
+            modelBuilder.Entity<MS_User>()
+                .Property(u => u.IsActive)
+                .HasDefaultValue(true);
+
+            modelBuilder.Entity<MS_User>()
+                .Property(u => u.IsDisabled)
+                .HasDefaultValue(false);
+
+            modelBuilder.Entity<MS_User>()
+                .Property(u => u.IsDeleted)
+                .HasDefaultValue(false);
+
+        }
+
+        /*
+        //this is a simple example of overriding SaveChanges to add custom validation logic
+        //more complex validation can be done using SaveChangesInterceptor as shown in ValidationInterceptor class below
+        //this is not required if using ValidationInterceptor
+        //but is included here to show another way to do validation
+        public override int SaveChanges()
+        {
+            foreach (var entry in ChangeTracker.Entries<MS_Message>())
+            {
+                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                {
+                    var message = entry.Entity;
+                    if (string.IsNullOrWhiteSpace(message.Text))
+                    {
+                        throw new InvalidOperationException("Message content cannot be empty.");
+                    }
+                }
+            }
+            return base.SaveChanges();
+        }
+        */  
+
+        /*
+        //this is from EF6, not EF Core
+        //kept here for reference
+        //in EF Core, use SaveChangesInterceptor as shown in ValidationInterceptor class below
+        public static void ValidateEntities(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, MessageSystemContext context)
+        {
+            if (entry.Entity is MS_Message message)
+            {
+                MS_Message.ValidateEntity(entry as Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<MS_Message>, context);
+            }
+            // Add more entity types and their validation methods as needed
+        }
+        */
+
+    }
+
+    public class ValidationInterceptor : SaveChangesInterceptor
+    {
+        public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
+        {
+            var context = eventData.Context as MessageSystemContext;
+            if (context != null)
+            {
+                foreach (var entry in context.ChangeTracker.Entries<IValidatableObject>())
+                {
+                    var entity = entry.Entity;
+                    var validationContext = new ValidationContext(entity, items: null );
+                    Validator.ValidateObject(entity, validationContext, true);
+                }
+
+                foreach (var entry in context.ChangeTracker.Entries<MS_Message>())
+                {
+                    if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                    {
+                        MS_Message.ValidateEntity(entry, context);
+                    }
+                }
+
+                foreach (var entry in context.ChangeTracker.Entries<MS_Thread>())
+                {
+                    if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                    {
+                        MS_Thread.ValidateEntity(entry, context);
+                    }
+                }
+
+            }
+            return base.SavingChanges(eventData, result);
         }
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Identity.Client;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 
@@ -14,17 +15,20 @@ namespace EF_Messages
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public bool IsActive { get; set; } = true;
+        public bool IsDisabled { get; set; } = false;
+        public bool IsDeleted { get; set; } = false;
 
         public string Name { get; set; } = string.Empty;
         public List<MS_Message>? Messages { get; set; }
         public List<MS_Thread>? Threads { get; set; }
 
-        public static MS_User? GetUserById(DbContext context, int userId)
+        public static MS_User? GetUserById(MessageSystemContext context, int userId)
         {
-            return context.Set<MS_User>().Find(userId);
+            return context.Users.Find(userId);
         }
 
-        public static MS_User? GetUserByName(DbContext context, string userName)
+        public static MS_User? GetUserByName(MessageSystemContext context, string userName)
         {
             if (string.IsNullOrWhiteSpace(userName))
             {
@@ -33,21 +37,23 @@ namespace EF_Messages
             return context.Set<MS_User>().FirstOrDefault(u => u.UserName.ToLower() == userName.ToLower());
         }
 
-        public static bool ValidateUserIds(DbContext context, List<int> userIds, bool requireActive = true)
+        public static bool AreUserIDsValid(List<int> userIds, bool requireActive = true)
         {
+            MessageSystemContext context = new MessageSystemContext();
             IQueryable<MS_User> users = context.Set<MS_User>().Where(u => userIds.Contains(u.UserId));
-            /*            if (requireActive)
-                        {
-                            users = users.Where(u => EF.Property<bool>(u, "IsActive"));
-                        }
-            */
+            if (requireActive)
+            {
+                users = users.Where(u => EF.Property<bool>(u, "IsActive") == true && EF.Property<bool>(u, "IsDisabled") == false && EF.Property<bool>(u, "IsDeleted") == false);
+            }
+
             return users.Count() == userIds.Count;
         }
 
-        public static bool ValidateUserId(DbContext context, int userId, bool requireActive = true)
+        public static bool IsUserIdValid(int userId, bool requireActive = true)
         {
-            return ValidateUserIds(context, new List<int> { userId }, requireActive);
+            return AreUserIDsValid(new List<int> { userId }, requireActive);
         }
+
 
         public static MS_User CreateUser(string userName, string password, string name, DbContext context)
         {

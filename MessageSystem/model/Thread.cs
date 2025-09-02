@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SQLitePCL;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Linq;
@@ -30,9 +32,14 @@ namespace EF_Messages
         public List<ThreadToMessage> ThreadToMessages { get; set; } = new List<ThreadToMessage>();
         public List<ThreadToUser> ThreadToUsers { get; set; } = new List<ThreadToUser>();
 
-        public delegate void MessageAddedEventHandler(object sender, MS_Message message);
+
+        #region Events
+        public delegate void MessageAddedEventHandler(object sender);
         public event MessageAddedEventHandler? MessageAdded;
 
+        public delegate void UserAddedEventHandler(object sender, int userId);
+        public event UserAddedEventHandler? UserAdded;
+        #endregion
 
         public MS_Thread(string name, int createdByUserId)
         {
@@ -54,6 +61,46 @@ namespace EF_Messages
             this.CreatedByUserId = 0;
         }
 
+        public static MS_Thread CreateThread(string title, MS_Message msg, List<MS_User> recipients, MessageSystemContext context)
+        {
+            return CreateThread(title, msg, recipients.Select(r => r.UserId).ToList(), context);
+        }
+
+        public static MS_Thread CreateThread(string title, MS_Message msg, List<int> recipientsIDs, MessageSystemContext context)
+        {
+            MS_Thread thread;
+
+            // Validate inputs
+            if (msg.SentByUserId <= 0)
+                throw new ArgumentException("Thread owner user ID must be greater than zero.");
+            if (recipientsIDs == null || recipientsIDs.Count == 0)
+                throw new ArgumentException("At least one recipient is required to create a thread.");
+            if (msg == null)
+                throw new ArgumentException("Message cannot be null.");
+            if (title == null || title.Trim().Length == 0)
+                throw new ArgumentException("Thread title cannot be null.");
+            if (!MS_User.AreUserIDsValid(recipientsIDs))
+                throw new ArgumentException("Not all recipient Ids are valid.");
+
+            //begin database interactions
+            using (var trasnsaction = context.Database.BeginTransaction())
+            {
+                // Create thread                
+                thread = new MS_Thread(title, msg.SentByUserId);
+                context.Threads.Add(thread);
+                context.SaveChanges();
+
+                //Add users for thread
+                foreach (var userId in recipientsIDs)
+                    thread.AddUser(userId, context, userId == msg.SentByUserId);
+
+                thread.InsertMessage(msg, context);
+
+                trasnsaction.Commit();
+            }
+
+            return thread;
+        }
 
         public static string GetMessagesJsonByThreadId(int threadId, MessageSystemContext dbContext)
         {
@@ -79,74 +126,47 @@ namespace EF_Messages
             return JsonSerializer.Serialize(messages);
         }
 
-        public static MS_Thread CreateThread(string title, MS_Message msg, List<MS_User> recipients, MessageSystemContext context)
+        public static MS_Thread getThreadById(int threadId, MessageSystemContext context)
         {
-            return CreateThread(title, msg, recipients.Select(r => r.UserId).ToList(), context);
-        }
+            var thread = context.Threads
+                .Include(t => t.ThreadToMessages)
+                    .ThenInclude(ttm => ttm.Message)
+                .Include(t => t.ThreadToUsers)
+                    .ThenInclude(ttu => ttu.User)
+                .FirstOrDefault(t => t.ThreadId == threadId);
 
-        public static MS_Thread CreateThread(string title, MS_Message msg, List<int> recipientsIDs, MessageSystemContext context)
-        {
-            MS_Thread thread;
-
-            // Validate inputs
-            if (msg.SentByUserId <= 0)
-                throw new ArgumentException("Thread owner user ID must be greater than zero.");
-            if (recipientsIDs == null || recipientsIDs.Count == 0)
-                throw new ArgumentException("At least one recipient is required to create a thread.");
-            if (msg == null)
-                throw new ArgumentException("Message cannot be null.");
-            if (title == null || title.Trim().Length == 0)
-                throw new ArgumentException("Thread title cannot be null.");
-            if (!MS_User.ValidateUserIds(context, recipientsIDs))
-                throw new ArgumentException("Not all recipient Ids are valid.");
-
-            //begin database interactions
-            using (var trasnsaction = context.Database.BeginTransaction())
-            {
-                // Create thread                
-                thread = new MS_Thread(title, msg.SentByUserId);
-                context.Threads.Add(thread);
-                context.SaveChanges();
-
-                //Add users for thread
-                foreach (var userId in recipientsIDs)
-                    thread.AddUser(userId, context, userId == msg.SentByUserId);
-
-                thread.InsertMessage(msg, context);
-
-                trasnsaction.Commit();
-            }
+            if (thread == null)
+                throw new ArgumentException($"Thread with id {threadId} does not exist.");
 
             return thread;
         }
 
+        #region User functions
         //create an entry in the UserToThread table
         public void AddUser(int userId, MessageSystemContext context, bool owner = false)
         {
             try
             {
                 // Validate state of database before adding user to thread
-                var user = context.Users.Find(userId);
-                if (user == null)
+                if (!MS_User.IsUserIdValid(userId))
                     throw new ArgumentException($"User with id {userId} does not exist.");
 
                 if (owner && ThreadToUsers.Any(tu => tu.Owner && tu.ThreadId == ThreadId && tu.UserId != userId))
                     throw new InvalidOperationException("Only one owner is allowed in the thread.");
 
                 bool alreadyExists = context.ThreadToUsers.Any(tu => tu.ThreadId == ThreadId && tu.UserId == userId);
-                if (alreadyExists)
-                    throw new InvalidOperationException("User is already in the thread.");
-
-
-                var threadToUser = new ThreadToUser(ThreadId, userId, owner);
-                context.ThreadToUsers.Add(threadToUser);
-                context.SaveChanges();
+                if (!alreadyExists)
+                {
+                    var threadToUser = new ThreadToUser(ThreadId, userId, owner);
+                    context.ThreadToUsers.Add(threadToUser);
+                    context.SaveChanges();
+                    UserAdded?.Invoke(this, userId);
+                }
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error adding user {userId} to thread {ThreadId}: {ex.Message}");
             }
-            context.SaveChanges();
         }
 
         public static void RemoveUserFromThread(int threadId, int userId, MessageSystemContext context)
@@ -162,7 +182,9 @@ namespace EF_Messages
             context.ThreadToUsers.Remove(threadToUser);
             context.SaveChanges();
         }
+        #endregion
 
+        #region Message functions
         public void InsertMessage(MS_Message message, MessageSystemContext context)
         {
             bool inTransaction = context.Database.CurrentTransaction != null;
@@ -207,7 +229,34 @@ namespace EF_Messages
             if (!inTransaction && transaction != null)
                 transaction.Commit();
 
-            MessageAdded?.Invoke(this, message);
+            MessageAdded?.Invoke(this);
+        }
+
+        public static MS_Thread GetThreadById(int threadId, MessageSystemContext context)
+        {
+            var thread = context.Threads
+                .Include(t => t.ThreadToMessages)
+                    .ThenInclude(ttm => ttm.Message)
+                .Include(t => t.ThreadToUsers)
+                    .ThenInclude(ttu => ttu.User)
+                .FirstOrDefault(t => t.ThreadId == threadId);
+
+            if (thread == null)
+                throw new ArgumentException($"Thread with id {threadId} does not exist.");
+
+            return thread;
+        }
+        #endregion
+
+        public static void ValidateEntity(EntityEntry<MS_Thread> entry, MessageSystemContext context)
+        {
+            var thread = entry.Entity;
+            if (!MS_User.IsUserIdValid(thread.CreatedByUserId, false))
+            {
+                throw new ValidationException($"CreatedByUserId {thread.CreatedByUserId} is not a valid user ID.");
+            }
+            if (string.IsNullOrEmpty(thread.Name))
+                throw new ValidationException($"Thread Name cannot be blank.");
         }
 
     }
@@ -249,6 +298,15 @@ namespace EF_Messages
             this.Position = 0;
             this.CreatedAt = DateTime.UtcNow;
         }
+
+        /*
+        //This shouldn't be necessary. We aren't doing anything too complex here
+        public static void ValidateEntity(EntityEntry<ThreadToMessage> entry, MessageSystemContext context)
+        {
+            var ttm = entry.Entity;
+        }
+        */
+
     }
 
     [PrimaryKey("Id")]
@@ -281,6 +339,13 @@ namespace EF_Messages
             this.UserId = 0;
         }
 
+        /*
+        //This shouldn't be necessary. We aren't doing anything too complex here
+        public static void ValidateEntity(EntityEntry<ThreadToMessage> entry, MessageSystemContext context)
+        {
+            var ttu = entry.Entity;
+        }
+        */
     }
-#endregion
+    #endregion
 }

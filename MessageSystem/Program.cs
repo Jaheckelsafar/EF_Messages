@@ -36,7 +36,6 @@ partial class Program
 
         app.UseHttpsRedirection();
 
-
         using (var context = new MessageSystemContext(configuration))
         {
             // Ensure the database is created
@@ -79,16 +78,7 @@ partial class Program
             }
 
             // display General Chat thread and messages
-            var thrd = context.Threads
-                .Where(t => t.Name == "General Chat")
-                .Include(t => t.ThreadToMessages)
-                    .ThenInclude(tm => tm.Message)
-                        .ThenInclude(m => m.SentByUser)
-                .Include(t => t.ThreadToUsers)
-                    .ThenInclude(tu => tu.User)
-                .FirstOrDefault();
-
-
+            var thrd = MS_Thread.GetThreadById(thrdGen.ThreadId, context);
 
             Console.WriteLine("\nGeneral Chat Thread and Messages:");
             Console.WriteLine("-----------------------------------");
@@ -96,7 +86,6 @@ partial class Program
             {
                 Console.WriteLine($"Message: {msg.Message.Text} by {msg.Message.SentByUser?.Name}");
             }
-
 
             //context.Database.EnsureDeleted();
 
@@ -127,25 +116,6 @@ partial class Program
                 return;
             }
             transaction.Commit();
-        }
-    }
-
-    static void AddThreads(MessageSystemContext context)
-    {
-        // Add a new thread
-        var thread = context.Threads.Where(s => s.Name == "General Chat").FirstOrDefault();
-        if (thread == null)
-        {
-            thread = new MS_Thread("General Chat", context.Users.Where(s => s.Name == "John Doe").First().UserId);
-            context.Threads.Add(thread);
-            context.SaveChanges();
-        }
-        thread = context.Threads.Where(s => s.Name == "CATS!!!!!").FirstOrDefault();
-        if (thread == null)
-        {
-            thread = new MS_Thread("CATS!!!!!", context.Users.Where(s => s.Name == "June Doe").First().UserId);
-            context.Threads.Add(thread);
-            context.SaveChanges();
         }
     }
 }
