@@ -7,10 +7,11 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using MessageSystem.Repositories;
 
 
 
-namespace EF_Messages
+namespace MessageSystem.Models
 {
     public class MessageSystemContext : DbContext
     {
@@ -27,11 +28,13 @@ namespace EF_Messages
 
         public MessageSystemContext(IConfiguration configuration)
         {
+            _validationInterceptor = new ValidationInterceptor();
             appConfig = configuration;
         }
 
         public MessageSystemContext()
         {
+            _validationInterceptor = new ValidationInterceptor();
             appConfig = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("appSettings.json", optional: true, reloadOnChange: true)
@@ -189,18 +192,22 @@ namespace EF_Messages
                     Validator.ValidateObject(entity, validationContext, true);
                 }
 
+                MessageRepository mr = new MessageRepository(context);
                 foreach (var entry in context.ChangeTracker.Entries<MS_Message>())
                 {
                     if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
                     {
+                        mr.isValid(entry.Entity);
                         MS_Message.ValidateEntity(entry, context);
                     }
                 }
 
+                ThreadRepository tr = new ThreadRepository(context);
                 foreach (var entry in context.ChangeTracker.Entries<MS_Thread>())
                 {
                     if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
                     {
+                        tr.isValid(entry.Entity);
                         MS_Thread.ValidateEntity(entry, context);
                     }
                 }

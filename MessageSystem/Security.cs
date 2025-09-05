@@ -3,7 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
-using EF_Messages; // Adjust namespace as needed
+using MessageSystem.Models; // Adjust namespace as needed
 
 public static class SecurityService
 {

@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 
-namespace EF_Messages
+namespace MessageSystem.Models
 {
     [PrimaryKey("UserId")]
     public class MS_User
@@ -36,24 +36,6 @@ namespace EF_Messages
             }
             return context.Set<MS_User>().FirstOrDefault(u => u.UserName.ToLower() == userName.ToLower());
         }
-
-        public static bool AreUserIDsValid(List<int> userIds, bool requireActive = true)
-        {
-            MessageSystemContext context = new MessageSystemContext();
-            IQueryable<MS_User> users = context.Set<MS_User>().Where(u => userIds.Contains(u.UserId));
-            if (requireActive)
-            {
-                users = users.Where(u => EF.Property<bool>(u, "IsActive") == true && EF.Property<bool>(u, "IsDisabled") == false && EF.Property<bool>(u, "IsDeleted") == false);
-            }
-
-            return users.Count() == userIds.Count;
-        }
-
-        public static bool IsUserIdValid(int userId, bool requireActive = true)
-        {
-            return AreUserIDsValid(new List<int> { userId }, requireActive);
-        }
-
 
         public static MS_User CreateUser(string userName, string password, string name, DbContext context)
         {

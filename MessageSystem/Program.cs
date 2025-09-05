@@ -8,7 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-
+using MessageSystem.Models;
+using MessageSystem.Repositories;
 
 partial class Program
 {
@@ -41,27 +42,32 @@ partial class Program
             // Ensure the database is created
             context.Database.EnsureCreated();
 
-            AddUsers(context);
+            UserRepository userRepo = new UserRepository(context);
+            MessageRepository msgRepo = new MessageRepository(context);
+            ThreadRepository threadRepo = new ThreadRepository(context);
+
+            AddUsers(userRepo);
 
             MS_User? usrJohn = MS_User.GetUserByName(context, "john");
             MS_User? usrJane = MS_User.GetUserByName(context, "jane");
             MS_User? usrJune = MS_User.GetUserByName(context, "june");
             MS_User? usrJack = MS_User.GetUserByName(context, "jack");
 
+            MS_Message msg = msgRepo.CreateMessage(usrJohn.UserId, "Hello, World!");
+            MS_Thread thrdGen = threadRepo.CreateThread("General Chat", usrJohn.UserId);
+            threadRepo.AddUsersToThread(thrdGen.ThreadId, new List<int> { usrJane.UserId, usrJack.UserId, usrJune.UserId });
+            threadRepo.InsertMessage(thrdGen.ThreadId, msg);
+            msg = msgRepo.CreateMessage(usrJane.UserId, "Goodbye, World!");
+            threadRepo.InsertMessage(thrdGen.ThreadId, msg);
+            MS_Thread thrdCats = threadRepo.CreateThread("CATS!!!!!", usrJune.UserId);
+            threadRepo.AddUsersToThread(thrdCats.ThreadId, new List<int> { usrJohn.UserId, usrJane.UserId, usrJack.UserId });
+            msg = msgRepo.CreateMessage(usrJune.UserId, "Meow!");
+            threadRepo.InsertMessage(thrdCats.ThreadId, msg);
+            msg = msgRepo.CreateMessage(usrJack.UserId, "What?");
+            threadRepo.InsertMessage(thrdCats.ThreadId, msg);
+            threadRepo.InsertMessage(thrdCats.ThreadId,  msgRepo.CreateMessage(usrJune.UserId, "Meow!"));
+            threadRepo.InsertMessage(thrdGen.ThreadId, msgRepo.CreateMessage(usrJack.UserId, "Stop being so dramatic Jane."));
 
-            var message = new MS_Message { Text = "Hello, World!", SentByUserId = usrJohn.UserId };
-            MS_Thread thrdGen = MS_Thread.CreateThread("General Chat", message, new List<MS_User> { usrJane, usrJack, usrJune }, context);
-            message = new MS_Message { Text = "Goodbye, World!", SentByUserId = usrJane.UserId };
-            thrdGen.InsertMessage(
-                new MS_Message { Text = "Stop being so dramatic Jane.", SentByUserId = usrJack.UserId },
-                context);
-            MS_Thread thrdCats = MS_Thread.CreateThread("CATS!!!!!", message, new List<MS_User> { usrJohn, usrJane, usrJack }, context);
-            message = new MS_Message { Text = "Meow!", SentByUserId = usrJune.UserId };
-            thrdCats.InsertMessage(message, context);
-            message = new MS_Message { Text = "What?", SentByUserId = usrJack.UserId };
-            thrdCats.InsertMessage(message, context);
-            message = new MS_Message { Text = "Meow!", SentByUserId = usrJune.UserId };
-            thrdCats.InsertMessage(message, context);
 
             // display all users and messages
             Console.WriteLine("Users and Messages in the Database:");
@@ -72,19 +78,19 @@ partial class Program
             }
 
 
-            foreach (var msg in context.Messages)
+            foreach (var allMsg in context.Messages)
             {
-                Console.WriteLine($"Message: {msg.Text} by {msg.SentByUser?.Name}");
+                Console.WriteLine($"Message: {allMsg.Text} by {allMsg.SentByUser?.Name}");
             }
 
             // display General Chat thread and messages
-            var thrd = MS_Thread.GetThreadById(thrdGen.ThreadId, context);
+            var thrd = threadRepo.GetThreadById(thrdGen.ThreadId);
 
             Console.WriteLine("\nGeneral Chat Thread and Messages:");
             Console.WriteLine("-----------------------------------");
-            foreach (var msg in thrd.ThreadToMessages)
+            foreach (var thrdMsg in thrd.ThreadToMessages)
             {
-                Console.WriteLine($"Message: {msg.Message.Text} by {msg.Message.SentByUser?.Name}");
+                Console.WriteLine($"Message: {thrdMsg.Message.Text} by {thrdMsg.Message.SentByUser?.Name}");
             }
 
             //context.Database.EnsureDeleted();
@@ -93,32 +99,28 @@ partial class Program
         }
     }
 
-    static void AddUsers(MessageSystemContext context)
+    static void AddUsers(UserRepository userRepo)
     {
-        using (var transaction = context.Database.BeginTransaction())
+        try
         {
-            try
-            {
-                MS_User.CreateUser("john", "password123", "John Doe", context);
+            userRepo.CreateUser("john", "password123", "John Doe");
 
-                List<MS_User> users = new List<MS_User> {
-                    new MS_User { Name = "Jane Doe", UserName = "jane", Password = "password123" },
-                    new MS_User { Name = "Jack Doe", UserName = "jack", Password = "password123" },
-                };
-                MS_User.ImportUsers(users, context);
+            List<MS_User> users = new List<MS_User> {
+                new MS_User { Name = "Jane Doe", UserName = "jane", Password = "password123" },
+                new MS_User { Name = "Jack Doe", UserName = "jack", Password = "password123" },
+            };
+            userRepo.ImportUsers(users);
 
-                MS_User.CreateUser("june", "password123", "June Doe", context);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding users: {ex.Message}");
-                transaction.Rollback();
-                return;
-            }
-            transaction.Commit();
+        userRepo.CreateUser("june", "password123", "June Doe");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding users: {ex.Message}");
+            return;
         }
     }
 }
+
 
 
 

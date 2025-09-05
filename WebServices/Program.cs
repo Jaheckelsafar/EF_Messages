@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using EF_Messages;
+using MessageSystem.Models;
+using MessageSystem.Services;
+using MessageSystem.Repositories;
 
 public partial class Program
 {
@@ -17,8 +19,13 @@ public partial class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Register MessageSystemContext with DI
-        builder.Services.AddDbContext<EF_Messages.MessageSystemContext>(options =>
+        builder.Services.AddDbContext<MessageSystemContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("MessageSystemConnection")));
+        
+        builder.Services.AddScoped<UserRepository>();
+        builder.Services.AddScoped<MessageRepository>();
+        //builder.Services.AddScoped<ThreadRepository>();
+
 
         // Add authentication services (JWT Bearer)
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -78,7 +85,7 @@ public partial class Program
         app.MapControllers();
 
 
-        using (var context = new EF_Messages.MessageSystemContext(configuration))
+        using (var context = new MessageSystemContext(configuration))
         {
             // Ensure the database is created
             context.Database.EnsureCreated();
