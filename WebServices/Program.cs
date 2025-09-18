@@ -22,9 +22,10 @@ public partial class Program
         builder.Services.AddDbContext<MessageSystemContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("MessageSystemConnection")));
         
-        builder.Services.AddScoped<UserRepository>();
-        builder.Services.AddScoped<MessageRepository>();
-        //builder.Services.AddScoped<ThreadRepository>();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+        builder.Services.AddScoped<IThreadRepository, ThreadRepository>();
+        builder.Services.AddScoped<ISecurityService, SecurityService>();
 
 
         // Add authentication services (JWT Bearer)
@@ -43,7 +44,9 @@ public partial class Program
                         if (!string.IsNullOrEmpty(token) && token.StartsWith("Bearer "))
                         {
                             token = token.Substring("Bearer ".Length);
-                            var principal = SecurityService.ValidateJwtToken(token, SecurityService.Issuer, SecurityService.Audience, SecurityService.SecretKey);
+                            // Resolve SecurityService from DI
+                            var securityService = context.HttpContext.RequestServices.GetRequiredService<ISecurityService>();
+                            var principal = securityService.ValidateJwtToken(token, SecurityService.Issuer, SecurityService.Audience, SecurityService.SecretKey);
                             if (principal != null)
                             {
                                 context.Principal = principal;

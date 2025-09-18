@@ -4,6 +4,16 @@ using MessageSystem.Repositories;
 
 namespace MessageSystem.Services
 {
+    public interface IUserService
+    {
+        MS_User RegisterUser(string userName, string password, string name);
+        bool ValidateUser(MS_User user);
+        void ImportUsers(List<MS_User> users);
+        bool AreUserIDsValid(List<int> userIds, bool requireActive = true);
+        List<int> GetValidUserIds(List<int> userIds, bool requireActive = true);
+        bool IsUserIdValid(int userId, bool requireActive = true);
+    }
+    
     public class UserService
     {
         private readonly UserRepository _repo;
@@ -45,5 +55,23 @@ namespace MessageSystem.Services
             }
             _repo.ImportUsers(users);
         }
+
+        public bool AreUserIDsValid(List<int> userIds, bool requireActive = true)
+        {
+            List<int> retval = GetValidUserIds(userIds, requireActive);
+            return retval.Count == userIds.Count;
+        }
+
+        public List<int> GetValidUserIds(List<int> userIds, bool requireActive = true)
+        {
+            var users = _repo.GetUsersById(userIds)
+                .Where(u => userIds.Contains(u.UserId));
+            if (requireActive)
+                users = users.Where(u => u.IsActive && !u.IsDisabled && !u.IsDeleted);
+            return users.Select(u => u.UserId).ToList();
+        }
+
+        public bool IsUserIdValid(int userId, bool requireActive = true)
+            => AreUserIDsValid(new List<int> { userId }, requireActive);
     }
 }

@@ -4,7 +4,18 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace MessageSystem.Repositories
 {
-    public class ThreadRepository
+    public interface IThreadRepository
+    {
+        MS_Thread? GetThreadById(int threadId);
+        List<MS_Thread> GetThreadsForUser(int userId);
+        MS_Thread InsertThread(MS_Thread thread);
+        MS_Thread CreateThread(string title, int createdByUserId);
+        void AddUserToThread(int threadId, int userId, bool owner = false);
+        void AddUsersToThread(int threadId, List<int> userIds, bool owner = false);
+        void RemoveUserFromThread(int threadId, int userId);
+        void InsertMessage(int threadId, MS_Message message);
+    }
+    public class ThreadRepository : IThreadRepository
     {
         private readonly MessageSystemContext _context;
 
@@ -75,9 +86,10 @@ namespace MessageSystem.Repositories
 
         public void AddUsersToThread(int threadId, List<int> userIds, bool owner = false)
         {
-            List<int> ValidUserIds = new UserRepository(_context).GetValiduserIds(userIds);
-            foreach (var id in ValidUserIds)
+            foreach (var id in userIds)
             {
+                if (_context.ThreadToUsers.Find(id) == null)
+                    continue;
                 var threadToUser = new ThreadToUser(threadId, id, owner);
                 _context.ThreadToUsers.Add(threadToUser);
             }
@@ -120,13 +132,10 @@ namespace MessageSystem.Repositories
                 return false;
             if (string.IsNullOrWhiteSpace(thread.Title))
                 return false;
-            if (!userRepo.IsUserIdValid(thread.CreatedByUserId))
+            if (_context.Users.Find(thread.CreatedByUserId) == null)
                 return false;
-            foreach (var ttu in thread.ThreadToUsers)
-            {
-                if (!userRepo.IsUserIdValid(ttu.UserId))
-                    return false;
-            }
+            if (userRepo.GetUsersById(thread.ThreadToUsers.Select(ttu => ttu.UserId).ToList()).Count != thread.ThreadToUsers.Count)
+                return false;
             return true;
         }
 
@@ -135,9 +144,10 @@ namespace MessageSystem.Repositories
         //and this avoids the need for multiple repos in the service layer
         public bool isTTUValid(ThreadToUser ttu)
         {
+            var userRepo = new UserRepository(_context);
             if (ttu == null)
                 return false;
-            if (!new UserRepository(_context).IsUserIdValid(ttu.UserId))
+            if (_context.Users.Find(ttu.UserId) == null)
                 return false;
             if (_context.Threads.Find(ttu.ThreadId) == null)
                 return false;
@@ -154,7 +164,7 @@ namespace MessageSystem.Repositories
                 return false;
             return true;
         }
-        
+
 
 
     }

@@ -21,11 +21,17 @@ partial class Program
             .Build();
 
 
-            var builder = WebApplication.CreateBuilder(args);
+        var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+        builder.Services.AddScoped<IThreadRepository, ThreadRepository>();
+        builder.Services.AddScoped<ISecurityService, SecurityService>();
+        builder.Services.AddDbContext<MessageSystemContext>();
+
 
         var app = builder.Build();
 
@@ -36,16 +42,27 @@ partial class Program
         }
 
         app.UseHttpsRedirection();
+        
+        //var provider = builder.Services.BuildServiceProvider();
 
-        using (var context = new MessageSystemContext(configuration))
+        using (var scope = app.Services.CreateScope())
         {
+            var context = scope.ServiceProvider.GetRequiredService<MessageSystemContext>();
+            var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+            var msgRepo = scope.ServiceProvider.GetRequiredService<IMessageRepository>();
+            var threadRepo = scope.ServiceProvider.GetRequiredService<IThreadRepository>();
+            //SeedData(context);
+            //      }
+
+            //using (var context = new MessageSystemContext(configuration))
+            //{
             // Ensure the database is created
             context.Database.EnsureCreated();
 
-            UserRepository userRepo = new UserRepository(context);
-            MessageRepository msgRepo = new MessageRepository(context);
-            ThreadRepository threadRepo = new ThreadRepository(context);
-
+            /*            UserRepository userRepo = new UserRepository(context);
+                        MessageRepository msgRepo = new MessageRepository(context);
+                        ThreadRepository threadRepo = new ThreadRepository(context);
+            */
             AddUsers(userRepo);
 
             MS_User? usrJohn = MS_User.GetUserByName(context, "john");
@@ -65,7 +82,7 @@ partial class Program
             threadRepo.InsertMessage(thrdCats.ThreadId, msg);
             msg = msgRepo.CreateMessage(usrJack.UserId, "What?");
             threadRepo.InsertMessage(thrdCats.ThreadId, msg);
-            threadRepo.InsertMessage(thrdCats.ThreadId,  msgRepo.CreateMessage(usrJune.UserId, "Meow!"));
+            threadRepo.InsertMessage(thrdCats.ThreadId, msgRepo.CreateMessage(usrJune.UserId, "Meow!"));
             threadRepo.InsertMessage(thrdGen.ThreadId, msgRepo.CreateMessage(usrJack.UserId, "Stop being so dramatic Jane."));
 
 
@@ -99,7 +116,7 @@ partial class Program
         }
     }
 
-    static void AddUsers(UserRepository userRepo)
+    static void AddUsers(IUserRepository userRepo)
     {
         try
         {

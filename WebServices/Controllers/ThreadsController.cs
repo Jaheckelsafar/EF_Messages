@@ -2,15 +2,24 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using EF_Messages;
+using MessageSystem.Models;
+using MessageSystem.Repositories;
 
 [ApiController]
 [Route("api/[controller]")]
 public class ThreadsController : ControllerBase
 {
+    private readonly ThreadRepository _threadRepo;
+    private readonly MessageRepository _messageRepo;
+    private readonly UserRepository _userRepo;
     private readonly MessageSystemContext _context;
+    
 
-    public ThreadsController(MessageSystemContext context)
+    public ThreadsController(ThreadRepository threadRepo, MessageRepository messageRepo, UserRepository userRepo, MessageSystemContext context)
     {
+        _threadRepo = threadRepo;
+        _messageRepo = messageRepo;
+        _userRepo = userRepo;
         _context = context;
     }
 
@@ -19,12 +28,7 @@ public class ThreadsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetThread(int id)
     {
-        var thread = await _context.Threads
-            .Include(t => t.ThreadToMessages)
-                .ThenInclude(ttm => ttm.Message)
-            .Include(t => t.ThreadToUsers)
-                .ThenInclude(ttu => ttu.User)
-            .FirstOrDefaultAsync(t => t.ThreadId == id);
+        var thread = _threadRepo.GetThreadById(id);
 
         if (thread == null)
             return NotFound();
@@ -35,20 +39,31 @@ public class ThreadsController : ControllerBase
     // GET: api/threads/{id}/messages
     [HttpGet("{id}/messages")]
     [Authorize]
-    public IActionResult GetThreadMessages(int id)
+    public Task<IActionResult> GetMessages(int id)
     {
-        var json = MS_Thread.GetMessagesJsonByThreadId(id, _context);
-        return Ok(json);
+        var messages = _messageRepo.GetMessagesInThread(id);
+        if (messages == null || messages.Count == 0)
+            return Task.FromResult<IActionResult>(NotFound());
+
+        var ret  = messages.OrderBy(m => m.ThreadToMessages.First().Position)
+            .Select(m => new { m.MessageId, m.SentByUserId, m.CreatedAt, m.Text } ).ToList();
+
+        var json = System.Text.Json.JsonSerializer.Serialize(ret);
+
+        return Task.FromResult<IActionResult>(Ok(json));
+
     }
 
     // POST: api/threads
     [HttpPost]
     [Authorize]
-    public async Task<IActionResult> CreateThread([FromBody] MS_Thread thread)
+    public async Task<IActionResult> CreateThread([FromBody] String name, [FromHeader] int userId)
     {
         //MS_Thread.CreateThread(thread.Name,thread.CreatedByUserId, thread.ThreadToMessages.First().Message, )
-        _context.Threads.Add(thread);
-        await _context.SaveChangesAsync();
+        var thread = _threadRepo.CreateThread(name, userId);
+        
+
+
         return CreatedAtAction(nameof(GetThread), new { id = thread.ThreadId }, thread);
     }
 

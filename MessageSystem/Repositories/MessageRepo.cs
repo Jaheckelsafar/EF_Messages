@@ -12,7 +12,7 @@ namespace MessageSystem.Repositories
   
     }
 
-    public class MessageRepository
+    public class MessageRepository : IMessageRepository
     {
         private readonly MessageSystemContext _context;
 
@@ -63,6 +63,20 @@ namespace MessageSystem.Repositories
         {
             return _context.Messages.Find(messageId);
         }
+
+        public List<MS_Message> GetMessagesByIds(List<int> messageIds)
+        {
+            return _context.Messages.Where(m => messageIds.Contains(m.MessageId)).Select(m => m).ToList();
+        }
+
+        public List<MS_Message> GetMessagesInThread(int threadId)
+        {
+            return _context.ThreadToMessages
+                .Include(ttm => ttm.Message)
+                .Where(ttm => ttm.ThreadId == threadId)
+                .Select(ttm => ttm.Message!)
+                .ToList();
+        }
         
         public bool isValid(MS_Message message)
         {
@@ -71,7 +85,7 @@ namespace MessageSystem.Repositories
                 return false;
             if (string.IsNullOrWhiteSpace(message.Text))
                 return false;
-            if (!userRepo.IsUserIdValid(message.SentByUserId, false))
+            if (userRepo.GetUserById(message.SentByUserId) == null)
                 return false;
             return true;
         }

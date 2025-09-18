@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Text.Json;
 
 namespace UnitTests;
-
-public class Tests
+    
+public partial class Tests
 {
     private WebApplicationFactory<Program> _factory = null!;
 

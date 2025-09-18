@@ -41,6 +41,13 @@ namespace MessageSystem.Models
                 .Build();
         }
 
+        public MessageSystemContext(DbContextOptions<MessageSystemContext> options)
+            : base(options)
+        {
+            _validationInterceptor = new ValidationInterceptor();
+            // _commandLoggingInterceptor = new CommandLoggingInterceptor();
+        }
+
         public MessageSystemContext(IConfiguration configuration, System.Globalization.CultureInfo cultureInfo)
             : this(configuration)
         {
@@ -62,7 +69,9 @@ namespace MessageSystem.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(appConfig.GetConnectionString("MessageSystemConnection"));
+            //optionsBuilder.UseSqlServer(appConfig.GetConnectionString("MessageSystemConnection"));
+            optionsBuilder.UseInMemoryDatabase(Guid.NewGuid().ToString());
+
             //optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=MessageSystemDb;Trusted_Connection=True;");
             //optionsBuilder.AddInterceptors(_validationInterceptor, _commandLoggingInterceptor);
             optionsBuilder.AddInterceptors(new ValidationInterceptor());

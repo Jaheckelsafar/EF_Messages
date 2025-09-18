@@ -1,14 +1,20 @@
 using Microsoft.AspNetCore.Mvc;
+using MessageSystem.Repositories;
+using MessageSystem.Models;
 using EF_Messages;
 
 [ApiController]
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
+    private readonly IUserRepository _userRepo;
+    private readonly ISecurityService _securityService;
     private readonly MessageSystemContext _context;
 
-    public UsersController(MessageSystemContext context)
+    public UsersController(IUserRepository userRepo, ISecurityService securityService, MessageSystemContext context)
     {
+        _userRepo = userRepo;
+        _securityService = securityService;
         _context = context;
     }
 
@@ -16,11 +22,13 @@ public class UsersController : ControllerBase
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
-        var token = SecurityService.Login(request.UserName, request.Password, _context);
+        var token = _securityService.Login(request.UserName, request.Password);
         if (token == null)
             return Unauthorized();
+        
+        var user = _userRepo.GetUserByName(request.UserName);
 
-        return Ok(new { Token = token });
+        return Ok(new { Token = token, UserId = user?.UserId });
     }
 }
 
