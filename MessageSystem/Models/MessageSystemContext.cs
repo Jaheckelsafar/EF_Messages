@@ -41,13 +41,6 @@ namespace MessageSystem.Models
                 .Build();
         }
 
-        public MessageSystemContext(DbContextOptions<MessageSystemContext> options)
-            : base(options)
-        {
-            _validationInterceptor = new ValidationInterceptor();
-            // _commandLoggingInterceptor = new CommandLoggingInterceptor();
-        }
-
         public MessageSystemContext(IConfiguration configuration, System.Globalization.CultureInfo cultureInfo)
             : this(configuration)
         {
@@ -69,12 +62,33 @@ namespace MessageSystem.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            //optionsBuilder.UseSqlServer(appConfig.GetConnectionString("MessageSystemConnection"));
-            optionsBuilder.UseInMemoryDatabase(Guid.NewGuid().ToString());
+            if (appConfig == null)
+            {
+            throw new InvalidOperationException("Configuration cannot be null. Ensure IConfiguration is provided to the constructor.");
+            }
 
-            //optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=MessageSystemDb;Trusted_Connection=True;");
-            //optionsBuilder.AddInterceptors(_validationInterceptor, _commandLoggingInterceptor);
-            optionsBuilder.AddInterceptors(new ValidationInterceptor());
+            var provider = appConfig.GetValue<string>("DatabaseProvider");
+            if (string.IsNullOrEmpty(provider))
+            {
+            throw new InvalidOperationException("DatabaseProvider is not specified in configuration.");
+            }
+
+            switch (provider)
+            {
+            case "SqlServer":
+                var connStr = appConfig.GetConnectionString("MessageSystemConnection");
+                if (string.IsNullOrEmpty(connStr))
+                throw new InvalidOperationException("Connection string 'MessageSystemConnection' is missing.");
+                optionsBuilder.UseSqlServer(connStr);
+                break;
+            case "InMemory":
+                optionsBuilder.UseInMemoryDatabase(Guid.NewGuid().ToString());
+                break;
+            default:
+                throw new InvalidOperationException("Invalid DatabaseProvider configuration");
+            }
+
+            optionsBuilder.AddInterceptors(_validationInterceptor);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

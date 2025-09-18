@@ -34,8 +34,11 @@ public partial class Tests
 
         var blah = JsonDocument.Parse(contentString);
         var token = blah.RootElement.GetProperty("token").GetString();
+        var userId = blah.RootElement.GetProperty("userId").GetInt32();
 
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Add("userId", userId.ToString());
+
 
         response = await client.GetAsync("/getthread/1");
 
