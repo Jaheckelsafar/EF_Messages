@@ -3,18 +3,31 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
-using EF_Messages; // Adjust namespace as needed
+using MessageSystem.Models; // Adjust namespace as needed
 
-public static class SecurityService
+public interface ISecurityService
+{
+    string? Login(string username, string password);
+    ClaimsPrincipal? ValidateJwtToken(string token, string issuer, string audience, string signingKey);
+}
+
+public class SecurityService : ISecurityService
 {
     public const string SecretKey = "your_super_secret_key_12345_this_should_be_longer_longer_and_longer"; // Use a secure key in production
     public const string Issuer = "MyMessageSystem";
     public const string Audience = "MyMessageSystemAPI";
 
-    public static string? Login(string username, string password, MessageSystemContext db)
+    private MessageSystemContext _context;
+
+    public SecurityService(MessageSystemContext context)
+    {
+        _context = context;
+    }
+
+    public string? Login(string username, string password)
     {
         // Validate user credentials against the database
-        var user = db.Users.FirstOrDefault(u => u.UserName == username && u.Password == password);
+        var user = _context.Users.FirstOrDefault(u => u.UserName == username && u.Password == password);
         if (user == null)
             return null;
 
@@ -40,7 +53,7 @@ public static class SecurityService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public static ClaimsPrincipal? ValidateJwtToken(string token, string issuer, string audience, string signingKey)
+    public ClaimsPrincipal? ValidateJwtToken(string token, string issuer, string audience, string signingKey)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = System.Text.Encoding.UTF8.GetBytes(signingKey);
@@ -61,7 +74,7 @@ public static class SecurityService
             var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
             return principal;
         }
-         catch (Exception ex)
+        catch (Exception ex)
         {
             return null;
         }

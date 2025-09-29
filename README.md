@@ -5,3 +5,17 @@ Initially it will just be a message system with a web application front end to p
   * teach myself to use the .Net CLI tools
   * learn how to leverage coplit to make myself more productive
   * compare razor vs blazor vs webassembly
+
+
+things to look into:
+  creating a separate logging service
+
+
+2025-09-02
+  accomplishments:
+    got validation working through the Entity Framework using an interceptor class
+    Added some user flags to the database
+    Added 2 events to thread object: 
+      UserAdded
+      MessageAdded
+  

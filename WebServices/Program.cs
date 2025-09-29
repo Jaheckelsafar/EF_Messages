@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using EF_Messages;
+using MessageSystem.Models;
+using MessageSystem.Services;
+using MessageSystem.Repositories;
 
 public partial class Program
 {
@@ -17,8 +19,14 @@ public partial class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Register MessageSystemContext with DI
-        builder.Services.AddDbContext<EF_Messages.MessageSystemContext>(options =>
+        builder.Services.AddDbContext<MessageSystemContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("MessageSystemConnection")));
+        
+        builder.Services.AddScoped<IUserRepository, UserRepository>();
+        builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+        builder.Services.AddScoped<IThreadRepository, ThreadRepository>();
+        builder.Services.AddScoped<ISecurityService, SecurityService>();
+
 
         // Add authentication services (JWT Bearer)
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -36,7 +44,9 @@ public partial class Program
                         if (!string.IsNullOrEmpty(token) && token.StartsWith("Bearer "))
                         {
                             token = token.Substring("Bearer ".Length);
-                            var principal = SecurityService.ValidateJwtToken(token, SecurityService.Issuer, SecurityService.Audience, SecurityService.SecretKey);
+                            // Resolve SecurityService from DI
+                            var securityService = context.HttpContext.RequestServices.GetRequiredService<ISecurityService>();
+                            var principal = securityService.ValidateJwtToken(token, SecurityService.Issuer, SecurityService.Audience, SecurityService.SecretKey);
                             if (principal != null)
                             {
                                 context.Principal = principal;
@@ -78,7 +88,7 @@ public partial class Program
         app.MapControllers();
 
 
-        using (var context = new EF_Messages.MessageSystemContext(configuration))
+        using (var context = new MessageSystemContext(configuration))
         {
             // Ensure the database is created
             context.Database.EnsureCreated();

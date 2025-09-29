@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Text.Json;
 
 namespace UnitTests;
-
-public class Tests
+    
+public partial class Tests
 {
     private WebApplicationFactory<Program> _factory = null!;
 
@@ -34,8 +34,11 @@ public class Tests
 
         var blah = JsonDocument.Parse(contentString);
         var token = blah.RootElement.GetProperty("token").GetString();
+        var userId = blah.RootElement.GetProperty("userId").GetInt32();
 
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        client.DefaultRequestHeaders.Add("userId", userId.ToString());
+
 
         response = await client.GetAsync("/getthread/1");
 
@@ -47,6 +50,8 @@ public class Tests
         Console.WriteLine(contentString);
         // You can add more assertions here based on your expected response
     }
+
+
 
     [TearDown]
     public void Teardown()
