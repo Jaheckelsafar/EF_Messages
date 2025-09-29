@@ -64,13 +64,13 @@ namespace MessageSystem.Models
         {
             if (appConfig == null)
             {
-            throw new InvalidOperationException("Configuration cannot be null. Ensure IConfiguration is provided to the constructor.");
+                throw new InvalidOperationException("Configuration cannot be null. Ensure IConfiguration is provided to the constructor.");
             }
 
             var provider = appConfig.GetValue<string>("DatabaseProvider");
             if (string.IsNullOrEmpty(provider))
             {
-            throw new InvalidOperationException("DatabaseProvider is not specified in configuration.");
+                throw new InvalidOperationException("DatabaseProvider is not specified in configuration.");
             }
 
             switch (provider)
@@ -78,11 +78,12 @@ namespace MessageSystem.Models
             case "SqlServer":
                 var connStr = appConfig.GetConnectionString("MessageSystemConnection");
                 if (string.IsNullOrEmpty(connStr))
-                throw new InvalidOperationException("Connection string 'MessageSystemConnection' is missing.");
+                    throw new InvalidOperationException("Connection string 'MessageSystemConnection' is missing.");
                 optionsBuilder.UseSqlServer(connStr);
                 break;
             case "InMemory":
-                optionsBuilder.UseInMemoryDatabase(Guid.NewGuid().ToString());
+                optionsBuilder.UseInMemoryDatabase("MessageSystemInMemoryDb");
+                optionsBuilder.ConfigureWarnings(warnings => warnings.Ignore(InMemoryEventId.TransactionIgnoredWarning));
                 break;
             default:
                 throw new InvalidOperationException("Invalid DatabaseProvider configuration");

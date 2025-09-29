@@ -9,13 +9,13 @@ using MessageSystem.Repositories;
 [Route("api/[controller]")]
 public class ThreadsController : ControllerBase
 {
-    private readonly ThreadRepository _threadRepo;
-    private readonly MessageRepository _messageRepo;
-    private readonly UserRepository _userRepo;
+    private readonly IThreadRepository _threadRepo;
+    private readonly IMessageRepository _messageRepo;
+    private readonly IUserRepository _userRepo;
     private readonly MessageSystemContext _context;
-    
 
-    public ThreadsController(ThreadRepository threadRepo, MessageRepository messageRepo, UserRepository userRepo, MessageSystemContext context)
+
+    public ThreadsController(IThreadRepository threadRepo, IMessageRepository messageRepo, IUserRepository userRepo, MessageSystemContext context)
     {
         _threadRepo = threadRepo;
         _messageRepo = messageRepo;
@@ -45,8 +45,8 @@ public class ThreadsController : ControllerBase
         if (messages == null || messages.Count == 0)
             return Task.FromResult<IActionResult>(NotFound());
 
-        var ret  = messages.OrderBy(m => m.ThreadToMessages.First().Position)
-            .Select(m => new { m.MessageId, m.SentByUserId, m.CreatedAt, m.Text } ).ToList();
+        var ret = messages.OrderBy(m => m.ThreadToMessages.First().Position)
+            .Select(m => new { m.MessageId, m.SentByUserId, m.CreatedAt, m.Text }).ToList();
 
         var json = System.Text.Json.JsonSerializer.Serialize(ret);
 
@@ -54,15 +54,13 @@ public class ThreadsController : ControllerBase
 
     }
 
-    // POST: api/threads
-    [HttpPost]
+    // POST: api/threads/Create
+    [HttpPost("create")]
     [Authorize]
-    public async Task<IActionResult> CreateThread([FromBody] String name, [FromHeader] int userId)
+    public async Task<IActionResult> CreateThread([FromBody] CreateThreadRequest request)
     {
         //MS_Thread.CreateThread(thread.Name,thread.CreatedByUserId, thread.ThreadToMessages.First().Message, )
-        var thread = _threadRepo.CreateThread(name, userId);
-        
-
+        var thread = _threadRepo.CreateThread(request.Name, request.UserId);
 
         return CreatedAtAction(nameof(GetThread), new { id = thread.ThreadId }, thread);
     }
@@ -79,5 +77,28 @@ public class ThreadsController : ControllerBase
         _context.Threads.Remove(thread);
         await _context.SaveChangesAsync();
         return NoContent();
+    }
+
+    // POST: api/threads/{threadId}/addUser/{userId}
+    [HttpPost("{threadId}/addUser/{userId}")]
+    [Authorize]
+    public IActionResult AddUserToThread(int threadId, int userId, [FromQuery] bool owner = false)
+    {
+        var thread = _threadRepo.GetThreadById(threadId);
+        if (thread == null)
+            return NotFound("Thread not found");
+
+        var user = _userRepo.GetUserById(userId);
+        if (user == null)
+            return NotFound("User not found");
+
+        _threadRepo.AddUsersToThread(threadId, new List<int> { userId }, owner);
+        return Ok();
+    }
+    
+    public class CreateThreadRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public int UserId { get; set; }
     }
 }

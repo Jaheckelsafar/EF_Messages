@@ -8,6 +8,8 @@ namespace MessageSystem.Repositories
         MS_User? GetUserById(int userId);
         List<MS_User> GetUsersById(List<int> userIds);
         MS_User? GetUserByName(string userName);
+        bool UserNameExists(string userName);
+        bool UserNameAvailable(string userName);
         MS_User CreateUser(string userName, string password, string name);
         void ImportUsers(List<MS_User> users);
     }
@@ -33,11 +35,17 @@ namespace MessageSystem.Repositories
             => _context.Users.FirstOrDefault(u => u.UserName.ToLower() == userName.ToLower());
         #endregion
 
+        public bool UserNameExists(string userName)
+            => _context.Users.Any(u => u.UserName.ToLower() == userName.ToLower());
+
+        public bool UserNameAvailable(string userName)
+            => !_context.Users.Any(u => u.UserName.ToLower() == userName.ToLower());
+
 
 
         public MS_User CreateUser(string userName, string password, string name)
         {
-            if (_context.Users.Any(u => u.UserName.ToLower() == userName.ToLower()))
+            if (UserNameExists(userName))
                 throw new InvalidOperationException("UserName must be unique (case-insensitive).");
 
             var user = new MS_User
