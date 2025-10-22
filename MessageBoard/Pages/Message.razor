@@ -1,0 +1,112 @@
+@page "/Message/{id?}"
+@inject HttpClient Http
+@inject AuthService Auth
+
+@using System.Net.Http.Json
+
+<PageTitle>Message</PageTitle>
+
+@code {
+    [Parameter]
+    public int? id { get; set; }
+
+    [Parameter]
+    public bool isNested { get; set; } = false;
+    private ControlMode _mode;
+
+    private MessageModel? message;
+}
+
+@switch (_mode)
+{
+    case ControlMode.View:
+        if (message != null)
+        {
+            <h3>Message from @message.UserName</h3>
+            <p>@message.Text</p>
+        }
+        else
+        {
+            <p>Loading message...</p>
+        }
+        break;
+    case ControlMode.Create:
+        <h3>Create New Message</h3>
+        <div class="form-group">
+            <label for="MessageText">Message:</label>
+            <textarea class="form-control" id="MessageText" rows="4" @bind="message.Text"></textarea>
+            @if (!isNested) {
+                <button class="btn btn-primary mt-2">Submit</button> 
+            }        
+        </div>
+        break;
+    case ControlMode.Error:
+        <p class="text-danger">Error loading message.</p>
+        break;
+    default:
+        <p class="text-danger">Invalid mode.</p>
+        break;
+}
+
+@if (_mode == ControlMode.View)
+{
+    if (message != null)
+    {
+        <h3>Message from @message.UserName</h3>
+        <p>@message.Text</p>
+    }
+    else
+    {
+        <p>Loading message...</p>
+    }
+}
+else if (_mode == ControlMode.Create)
+{
+    <h3>Create New Message</h3>
+    <div class="form-group">
+        <label for="MessageText">Message:</label>
+        <textarea class="form-control" id="MessageText" rows="4" @bind="message.Text"></textarea>
+        @if (!isNested) {
+            <button class="btn btn-primary mt-2">Submit</button> 
+        }
+    </div>
+}
+else if (_mode == ControlMode.Error)
+{
+    <p class="text-danger">Error loading message.</p>
+}
+else
+{
+    <p>Invalid mode.</p>
+}
+
+@code {
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (id.HasValue)
+        {
+            _mode = ControlMode.View;
+            message = await Http.GetFromJsonAsync<MessageModel>($"http://localhost:5063/api/messagesgetMessage/{id.Value}");
+        }
+        else
+        {
+            _mode = ControlMode.Create;
+        }
+    }
+
+    public class MessageModel
+    {
+        public int MessageId { get; set; }
+        public int SentByUserId { get; set; }
+        public string? UserName { get; set; }
+        public string? Text { get; set; }
+    }
+
+    enum ControlMode {
+        View = 1,
+        Edit = 2,
+        Create = 3,
+        Error= 4
+    }
+}

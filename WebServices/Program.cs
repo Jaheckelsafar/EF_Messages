@@ -21,11 +21,13 @@ public partial class Program
         // Register MessageSystemContext with DI
         builder.Services.AddDbContext<MessageSystemContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("MessageSystemConnection")));
-        
+
+        // Register repositories and services with DI
         builder.Services.AddScoped<IUserRepository, UserRepository>();
         builder.Services.AddScoped<IMessageRepository, MessageRepository>();
         builder.Services.AddScoped<IThreadRepository, ThreadRepository>();
         builder.Services.AddScoped<ISecurityService, SecurityService>();
+
 
 
         // Add authentication services (JWT Bearer)
@@ -63,7 +65,26 @@ public partial class Program
             });
 
         builder.Services.AddAuthorization();
-        builder.Services.AddControllers();
+        // Add controllers with JSON options to handle reference loops
+        builder.Services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+            });
+        
+        builder.Services.AddCors(Policy =>
+        {
+            Policy.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder.WithOrigins("http://localhost:5258")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .SetIsOriginAllowed((host) => true); // Allow any origin
+}
+            );
+        });
+        
 
 
 
@@ -86,7 +107,9 @@ public partial class Program
         app.UseAuthorization();
         
         app.MapControllers();
-
+        app.UseCors("CorsPolicy");
+        
+        
 
         using (var context = new MessageSystemContext(configuration))
         {

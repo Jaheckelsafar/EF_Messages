@@ -12,6 +12,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices.Swift;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 
 
@@ -23,7 +24,9 @@ namespace MessageSystem.Models
         public int ThreadId { get; set; }
         public string Title { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public int CreatedByUserId { get; set; }
+        [JsonIgnore]
         [ForeignKey("CreatedByUserId")]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_User? CreatedByUser { get; set; }
@@ -55,11 +58,13 @@ namespace MessageSystem.Models
     {
         public int Id { get; set; }
         public int ThreadId { get; set; }
+        [JsonIgnore]
         [ForeignKey("ThreadId")]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_Thread? Thread { get; set; }
 
         public int MessageId { get; set; }
+        [JsonIgnore]
         [ForeignKey("MessageId")]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_Message? Message { get; set; }
@@ -102,11 +107,13 @@ namespace MessageSystem.Models
         public int Id { get; set; }
         public bool Owner { get; set; }
         public int ThreadId { get; set; }
+        [JsonIgnore]
         [ForeignKey("ThreadId")]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_Thread? Thread { get; set; }
 
         public int UserId { get; set; }
+        [JsonIgnore]
         [ForeignKey("UserId")]
         [DeleteBehavior(DeleteBehavior.Restrict)]
         public MS_User? User { get; set; }

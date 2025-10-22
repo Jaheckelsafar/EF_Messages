@@ -27,7 +27,7 @@ public class SecurityService : ISecurityService
     public string? Login(string username, string password)
     {
         // Validate user credentials against the database
-        var user = _context.Users.FirstOrDefault(u => u.UserName == username && u.Password == password);
+        var user = _context.Users.FirstOrDefault(u => u.UserName.ToLower() == username.ToLower() && u.Password == password);
         if (user == null)
             return null;
 

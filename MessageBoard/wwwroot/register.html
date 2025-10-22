@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Register New User</title>
+    <style>
+        body { font-family: system-ui, Arial, sans-serif; padding: 2rem; max-width: 520px; margin: auto; }
+        label { display: block; margin-top: .75rem; }
+        input { width: 100%; padding: .5rem; margin-top: .25rem; box-sizing: border-box; }
+        button { margin-top: 1rem; padding: .5rem 1rem; }
+        #message { margin-top: 1rem; }
+        .error { color: #9b1c1c; }
+        .success { color: #1b7f1b; }
+    </style>
+</head>
+<body>
+    <h1>Create Account</h1>
+
+    <form id="registerForm" autocomplete="off">
+        <label for="username">User name
+            <input id="username" name="username" type="text" required minlength="3" maxlength="100" />
+        </label>
+
+        <label for="password">Password
+            <input id="password" name="password" type="password" required minlength="6" />
+        </label>
+
+        <label for="name">Real name
+            <input id="name" name="name" type="text" required maxlength="200" />
+        </label>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <script>
+        (function () {
+            const form = document.getElementById('registerForm');
+            const msg = document.getElementById('message');
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                msg.textContent = '';
+                msg.className = '';
+
+                const username = form.username.value.trim();
+                const password = form.password.value;
+                const name = form.name.value.trim();
+
+                if (!username || !password || !name) {
+                    msg.textContent = 'All fields are required.';
+                    msg.className = 'error';
+                    return;
+                }
+
+                const payload = { username, password, name };
+
+                try {
+                    // Post JSON to the webservice path "api/users/register"
+                    const res = await fetch('http://localhost:5063/api/users/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        msg.textContent = 'Registration successful.';
+                        msg.className = 'success';
+                        form.reset();
+                    } else {
+                        const text = await res.text().catch(() => null);
+                        let detail = text || res.statusText || 'Registration failed.';
+                        msg.textContent = `Error: ${detail}`;
+                        msg.className = 'error';
+                    }
+                } catch (err) {
+                    msg.textContent = 'Network error: ' + (err && err.message ? err.message : 'unknown');
+                    msg.className = 'error';
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -9,7 +9,10 @@ namespace MessageSystem.Repositories
     {
         MS_Message InsertMessage(MS_Message message);
         MS_Message CreateMessage(int sentByUserId, string text);
-  
+        MS_Message? GetMessageById(int messageId);
+        List<MS_Message> GetMessagesByIds(List<int> messageIds);
+        List<MS_Message> GetMessagesInThread(int threadId);
+ 
     }
 
     public class MessageRepository : IMessageRepository
@@ -23,15 +26,16 @@ namespace MessageSystem.Repositories
 
         public MS_Message InsertMessage(MS_Message message)
         {
+            bool inMemoryConfig = _context.Database.ProviderName.Contains("InMemory");
             UserRepository userRepo = new UserRepository(_context);
-
             IDbContextTransaction? currentTransaction = _context.Database.CurrentTransaction;
             bool inTransaction = _context.Database.CurrentTransaction != null;
             if (inTransaction)
                 //currentTransaction = _context.Database.CurrentTransaction;
                 currentTransaction = _context.Database.UseTransaction(_context.Database.CurrentTransaction.GetDbTransaction());
             else
-                currentTransaction = _context.Database.BeginTransaction();
+                if (!inMemoryConfig)
+                    currentTransaction = _context.Database.BeginTransaction();
 
             try
             {
@@ -43,11 +47,11 @@ namespace MessageSystem.Repositories
             }
             catch
             {
-                if (!inTransaction)
+                if (!inTransaction && !inMemoryConfig)
                     currentTransaction?.Rollback();
                 throw;
             }
-            if (!inTransaction)
+            if (!inTransaction && !inMemoryConfig)
                 currentTransaction?.Commit();
                 
             return message;
@@ -74,6 +78,7 @@ namespace MessageSystem.Repositories
             return _context.ThreadToMessages
                 .Include(ttm => ttm.Message)
                 .Where(ttm => ttm.ThreadId == threadId)
+                .OrderBy(ttm => ttm.Position)
                 .Select(ttm => ttm.Message!)
                 .ToList();
         }
