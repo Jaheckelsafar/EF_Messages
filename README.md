@@ -9,6 +9,10 @@ Initially it will just be a message system with a web application front end to p
 
 things to look into:
   creating a separate logging service
+  rename Message field "Text" to "Content"
+    Do it when you look at adding attachments?
+  
+
 
 
 2025-09-02
@@ -18,4 +22,11 @@ things to look into:
     Added 2 events to thread object: 
       UserAdded
       MessageAdded
+
+2025-10-11
+  Unit Test coverage improved
+  repository and service layers separated
+  webservices project 
+
+  
   

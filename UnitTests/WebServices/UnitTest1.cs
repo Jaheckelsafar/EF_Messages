@@ -8,7 +8,7 @@ using MessageSystem.Controllers;
 
 namespace UnitTests;
     
-public class WebdserviceTests
+public class WebserviceTests
 {
     private WebApplicationFactory<Program> _factory = null!;
 

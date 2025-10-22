@@ -71,6 +71,20 @@ public partial class Program
             {
                 options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
             });
+        
+        builder.Services.AddCors(Policy =>
+        {
+            Policy.AddPolicy("CorsPolicy", builder =>
+                {
+                    builder.WithOrigins("http://localhost:5258")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials()
+                        .SetIsOriginAllowed((host) => true); // Allow any origin
+}
+            );
+        });
+        
 
 
 
@@ -93,7 +107,9 @@ public partial class Program
         app.UseAuthorization();
         
         app.MapControllers();
-
+        app.UseCors("CorsPolicy");
+        
+        
 
         using (var context = new MessageSystemContext(configuration))
         {

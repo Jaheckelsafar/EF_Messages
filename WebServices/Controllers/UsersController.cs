@@ -14,7 +14,7 @@ public class UsersController : ControllerBase
     private readonly ISecurityService _securityService;
     private readonly MessageSystemContext _context;
 
-    public UsersController(IUserRepository userRepo, ISecurityService securityService, MessageSystemContext context)
+    public UsersController(IUserRepository userRepo, ISecurityService securityService, MessageSystemContext context) 
     {
         _userRepo = userRepo;
         _securityService = securityService;
@@ -34,7 +34,7 @@ public class UsersController : ControllerBase
 
         var user = _userRepo.GetUserByName(request.UserName);
 
-        return Ok(new { Token = token, UserId = user?.UserId });
+        return Ok(new { Token = token, UserId = user?.UserId, UserName = user?.UserName, Name = user?.Name });
     }
 
     // POST: api/users/register

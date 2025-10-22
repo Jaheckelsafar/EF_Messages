@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using MessageSystem.Models;
 using MessageSystem.Repositories;
 using System.Text.Json;
+using Microsoft.VisualBasic;
 
 
 [Route("api/[controller]")]
@@ -34,7 +35,10 @@ public class MessagesController : ControllerBase
         var message = _messageRepo.GetMessageById(id);
         if (message == null)
             return NotFound();
-        return Ok(message);
+
+        var json = JsonSerializer.Serialize(new { message.MessageId, message.SentByUserId, message.SentByUser?.UserName, message.CreatedAt, message.Text });
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        return Ok(content);
     }
 
     // GET: api/messages/getMessages/{ids}
@@ -46,10 +50,10 @@ public class MessagesController : ControllerBase
         if (messages.Count == 0)
             return NotFound();
 
-        messages.Select(m => new { m.MessageId, m.SentByUserId, m.CreatedAt, m.Text }).ToList();
+        var msgs = messages.Select(m => new { m.MessageId, m.SentByUserId, m.SentByUser?.UserName, m.CreatedAt, m.Text }).ToList();
 
 
-        var json = JsonSerializer.Serialize(messages);
+        var json = JsonSerializer.Serialize(msgs);
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
         return Ok(content);
