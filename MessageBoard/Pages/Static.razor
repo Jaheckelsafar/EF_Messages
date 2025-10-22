@@ -1,0 +1,52 @@
+@page "/static/{*path}"
+@inject NavigationManager Navigation
+
+<PageTitle>@staticPageTitle</PageTitle>
+
+<iframe src="@staticPageURL" style="width:100%; height:100vh; border:none;"></iframe>
+
+@code {
+    [Parameter]
+    public string? path { get; set; }
+
+    private string staticPageTitle = "Static Page";
+    private string staticPageURL = string.Empty;
+
+    private Dictionary<string, StaticPage> staticPages = new Dictionary<string, StaticPage>
+    {
+        { "register", new StaticPage("register.html", "User Registration")}
+    };
+
+    private struct StaticPage
+    {
+        public string Path;
+        public string Title;
+
+        public StaticPage(string path, string title)
+        {
+            Path = path;
+            Title = title;
+        }
+    }
+
+
+
+    protected override void OnInitialized()
+    {
+
+
+        if (!string.IsNullOrEmpty(path) && staticPages.ContainsKey(path))
+        {
+            bool validPage = staticPages.TryGetValue(path, out StaticPage staticPage);
+
+            if (validPage) {
+                staticPageTitle = staticPage.Title;
+                staticPageURL = staticPage.Path;
+                return;
+            }
+            //var targetUrl = $"https://example.com/static/{path}";
+            //Navigation.NavigateTo(targetUrl, forceLoad: true);
+        }
+    }
+}
+

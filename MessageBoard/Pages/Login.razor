@@ -1,0 +1,77 @@
+@page "/login"
+@using System.Threading.Tasks
+@using System.Net
+@using System.ComponentModel
+@inject HttpClient Http
+@inject AuthService Auth
+
+
+
+
+<PageTitle>Login</PageTitle>
+
+@if (Auth.isLoggedIn)
+{
+    <p>Welcome @User.Username</p>
+}
+else
+{
+    <p>Please log in to continue.</p>
+}
+
+<div class="form-group">
+    <label for="UserName">Username:</label>
+    <input type="text" class="form-control" id="UserName" @bind="User.Username" />
+    <label for="Password">Password:</label>
+    <input type="password" class="form-control" id="Password" @bind="User.Password" />
+    <button class="btn btn-primary" @onclick="OnLogin">Login</button>
+</div>
+@statusMessage
+
+
+@code {
+    public class LoginModel
+    {
+        public string? Username { get; set; }
+        public string? Password { get; set; }
+    } 
+
+    public class LoginResponse
+    {
+        public int UserId { get; set; }
+        public string? Username { get; set; }
+        public string? Name { get; set; }
+        public string? Token { get; set; }
+    }
+    
+    LoginModel User { get; set; } = new LoginModel();
+
+    public string? statusMessage = string.Empty;
+
+    private async Task OnLogin()
+    {
+        statusMessage = "Logging in as: " + User.Username  + " / " + User.Password;
+
+        HttpResponseMessage? response = await Http.PostAsJsonAsync(requestUri: "http://localhost:5063/api/users/Login", User);
+
+         
+        if (!response.IsSuccessStatusCode)
+        {
+            statusMessage += " / Login Failed: " + response.StatusCode;
+        }
+        else
+        {
+            statusMessage += " / Login Successful: ";// + result?.Username;
+            LoginResponse? result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+            Auth.SetBearerToken(result!.Token!);
+            Auth.ApplyAuthorization(Http);
+            if (result != null)
+            {
+                statusMessage += " Hello " + result?.Name;
+            }
+        }
+    }
+
+}
+
+
