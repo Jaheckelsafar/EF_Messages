@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "msbuild",
+			"problemMatcher": [
+				"base": "$msCompile",
+				"fileLocation": "relative"
+			],
+			"group": "build",
+			"label": "Build: MessageBoard.csproj",
+			"detail": "Build the MessageBoard.csproj project using dotnet build"
+		}
+	]
+}
