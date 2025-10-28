@@ -2,8 +2,12 @@
 @using System.Threading.Tasks
 @using System.Net
 @using System.ComponentModel
+@using Models.UserModels
+
 @inject HttpClient Http
 @inject AuthService Auth
+@inject UserInformation UserInfo
+
 
 
 
@@ -12,24 +16,28 @@
 
 @if (Auth.isLoggedIn)
 {
-    <p>Welcome @User.Username</p>
+<div class="form-group" style="@Style">
+    <p>Welcome @UserInfo.Username</p>
+    <button class="btn btn-primary" @onclick="OnLogout">Logout</button>
+</div>
 }
 else
 {
-    <p>Please log in to continue.</p>
-}
-
-<div class="form-group">
-    <label for="UserName">Username:</label>
-    <input type="text" class="form-control" id="UserName" @bind="User.Username" />
-    <label for="Password">Password:</label>
-    <input type="password" class="form-control" id="Password" @bind="User.Password" />
+<div class="form-group" style="@Style">
+    <label for="UserName">Username:</label><input type="text" class="form-control" id="UserName" @bind="User.Username" />
+    <label for="Password">Password:</label><input type="password" class="form-control" id="Password" @bind="User.Password" />
     <button class="btn btn-primary" @onclick="OnLogin">Login</button>
 </div>
+}
+
 @statusMessage
 
 
 @code {
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public string? Height { get; set; }
+    
+    private string Style { get => "width:" + (string.IsNullOrEmpty(Width)?"auto":Width) + "; height:" + (string.IsNullOrEmpty(Height)?"auto":Height) + ";"; }
     public class LoginModel
     {
         public string? Username { get; set; }
@@ -69,8 +77,19 @@ else
             {
                 statusMessage += " Hello " + result?.Name;
             }
+            UserInfo.UserId = result!.UserId;
+            UserInfo.Username = result!.Username;
+            StateHasChanged();
         }
     }
+
+    private async Task OnLogout() {
+        Auth.ClearBearerToken();
+        Auth.ApplyAuthorization(Http);
+        UserInfo.Clear();
+        statusMessage = "Logged out.";
+    }
+
 
 }
 

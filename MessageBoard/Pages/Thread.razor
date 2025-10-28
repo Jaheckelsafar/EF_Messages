@@ -77,7 +77,7 @@ else if (!string.IsNullOrEmpty(threadId)) {
 else {
     <p>List of Threads</p>
     @foreach (int thrdId in threadIds) {
-        var tid = thrdId;
-        <ThreadCard threadId="@tid.ToString()" />
+        int tid = thrdId;
+        <ThreadCard threadId="tid.ToString()" />
     }
 }

@@ -1,4 +1,4 @@
-@page "/Message/{id?}"
+@page "/Message/{mode?}/{id?}/{isNested?}"
 @inject HttpClient Http
 @inject AuthService Auth
 
@@ -31,6 +31,7 @@
         }
         break;
     case ControlMode.Create:
+    case ControlMode.Edit:
         <h3>Create New Message</h3>
         <div class="form-group">
             <label for="MessageText">Message:</label>
@@ -86,8 +87,8 @@ else
     {
         if (id.HasValue)
         {
-            _mode = ControlMode.View;
             message = await Http.GetFromJsonAsync<MessageModel>($"http://localhost:5063/api/messagesgetMessage/{id.Value}");
+            await base.OnInitializedAsync();
         }
         else
         {
