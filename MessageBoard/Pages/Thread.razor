@@ -1,0 +1,83 @@
+@page "/Thread/{threadId?}"
+
+@using System.Net.Http.Json
+@using System.Data.Common
+@using MessageBoard.Models.ThreadModels
+@using MessageBoard.Models.UserModels
+@using MessageBoard.Pages.Cards
+@using System.Timers
+
+@inject HttpClient Http
+@inject AuthService Auth
+@inject UserInformation UserInfo
+
+
+<PageTitle>Thread</PageTitle>
+
+@code {
+    [Parameter]
+    public string threadId { get; set; } = "";
+    private List<int> messageIds = new List<int>();
+    private ThreadResponse? thrd;
+
+    private List<int> threadIds = new List<int>();
+
+    protected override void OnInitialized()
+    {
+        if (!Auth.isLoggedIn) { return; }
+        else {
+            Auth.ApplyAuthorization(Http);
+        }
+
+        if (string.IsNullOrEmpty(threadId)) {
+            Task<List<int>> response = Http.GetFromJsonAsync<List<int>>(requestUri: "http://localhost:5063/api/threads/getThreadIdsForUser/" + UserInfo.UserId);
+
+            response.ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    threadIds = task.Result;
+                    StateHasChanged();
+                }
+            });
+
+        }
+        else {
+            Task<ThreadResponse?> response = Http.GetFromJsonAsync<ThreadResponse>(requestUri: "http://localhost:5063/api/threads/" + threadId);
+
+            response.ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    thrd = task.Result;
+                    if (thrd != null) messageIds = thrd.MessageIds;
+                    StateHasChanged();
+                }
+            });
+
+            
+        }
+
+   // Initialization logic for the thread can be added here
+    }
+
+}
+
+@if (!Auth.isLoggedIn) {
+    <p>PLease login to continue</p>
+    <Login Width="400px" Height="250px" />
+}
+else if (!string.IsNullOrEmpty(threadId)) {
+    <h2>Thread Messages</h2>
+    <h3>@thrd!.Title</h3>
+    @foreach (var msgId in messageIds) {
+        <Message mode="View" id="@msgId" isNested="true" />
+    }
+}
+else {
+    <p>List of Threads</p>
+    @foreach (int thrdId in threadIds) {
+        var tid = thrdId;
+        <ThreadCard threadId="@tid.ToString()" />
+    }
+}
